@@ -73,9 +73,9 @@ class FlysystemStreamWrapper
     protected $uri;
 
     /**
-     * Registers the stream wrapper if not already registered.
+     * Registers the stream wrapper protocol if not already registered.
      *
-     * @param string                                $protocol   The protocol.
+     * @param string $protocol The protocol.
      * @param \League\Flysystem\FilesystemInterface $filesystem The filesystem.
      *
      * @return bool True if the protocal was registered, false if not.
@@ -104,33 +104,8 @@ class FlysystemStreamWrapper
             return false;
         }
 
+        unset(static::$filesystems[$protocol]);
         return stream_wrapper_unregister($protocol);
-    }
-
-    /**
-     * Returns the protocol from the internal URI.
-     *
-     * @return string The protocol.
-     */
-    protected function getProtocol()
-    {
-        return substr($this->uri, 0, strpos($this->uri, '://'));
-    }
-
-    /**
-     * Returns the local writable target of the resource within the stream.
-     *
-     * @param string $uri (optional) The URI.
-     *
-     * @return string The path appropriate for use with Flysystem.
-     */
-    protected function getTarget($uri = null)
-    {
-        if (!isset($uri)) {
-            $uri = $this->uri;
-        }
-
-        return substr($uri, strpos($uri, '://') + 3);
     }
 
     /**
@@ -299,22 +274,34 @@ class FlysystemStreamWrapper
 
         switch ($option) {
             case STREAM_META_ACCESS:
+                // Emulate chmod() since lots of things depend on it.
+                // @todo We could do better with the emulation.
                 return true;
 
             case STREAM_META_TOUCH:
-                // Emulate touch().
-                $filesystem = $this->getFilesystem();
-                $path = $this->getTarget();
+                return $this->touch($uri);
 
-                if (!$filesystem->has($path)) {
-                    $filesystem->put($path, '');
-                }
+            default:
+                return false;
+        }
+    }
 
-                return true;
+    /**
+     * Emulates touch().
+     *
+     * @param string $uri The URI to touch.
+     *
+     * @return bool True if successful, false if not.
+     */
+    protected function touch($uri) {
+        $filesystem = $this->getFilesystem();
+        $path = $this->getTarget($uri);
+
+        if (!$filesystem->has($path)) {
+            return $filesystem->put($path, '');
         }
 
-        // @todo
-        return false;
+        return true;
     }
 
     /**
@@ -511,6 +498,32 @@ class FlysystemStreamWrapper
         $ret['atime'] = time();
 
         return array_merge(array_values($ret), $ret);
+    }
+
+    /**
+     * Returns the protocol from the internal URI.
+     *
+     * @return string The protocol.
+     */
+    protected function getProtocol()
+    {
+        return substr($this->uri, 0, strpos($this->uri, '://'));
+    }
+
+    /**
+     * Returns the local writable target of the resource within the stream.
+     *
+     * @param string $uri (optional) The URI.
+     *
+     * @return string The path appropriate for use with Flysystem.
+     */
+    protected function getTarget($uri = null)
+    {
+        if (!isset($uri)) {
+            $uri = $this->uri;
+        }
+
+        return substr($uri, strpos($uri, '://') + 3);
     }
 
     /**
