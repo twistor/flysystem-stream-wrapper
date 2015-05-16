@@ -303,28 +303,47 @@ class FlysystemStreamWrapper {
     $this->uri = $uri;
     $path = $this->getTarget();
 
-    $this->handle = fopen('php://temp', 'r+');
-
-    try {
-      $reader = $this->getFilesystem()->readStream($path);
-
-      if ($reader) {
-        // Some adapters are read only streams, so we can't depend on writing to
-        // them.
-        stream_copy_to_stream($reader, $this->handle);
-        fclose($reader);
-        rewind($this->handle);
-      }
-    }
-    catch (FileNotFoundException $e) {
-      // We're creating a new file.
-    }
+    $this->handle = $this->getWritableStream($path);
 
     if ((bool) $this->handle && $options & STREAM_USE_PATH) {
       $opened_path = $path;
     }
 
     return (bool) $this->handle;
+  }
+
+  /**
+   * Returns a writable stream given a read-only stream.
+   *
+   * @param string $path
+   *   The internal file path.
+   *
+   * @return resource
+   *   A writable stream.
+   */
+  protected function getWritableStream($path) {
+    $handle = fopen('php://temp', 'r+');
+
+    try {
+      $reader = $this->getFilesystem()->readStream($path);
+    }
+    catch (FileNotFoundException $e) {
+      // We're creating a new file.
+      return $handle;
+    }
+
+    // Nothing to copy.
+    if (!$reader) {
+      return $handle;
+    }
+
+    // Some adapters are read only streams, so we can't depend on writing to
+    // them.
+    stream_copy_to_stream($reader, $handle);
+    fclose($reader);
+    rewind($handle);
+
+    return $handle;
   }
 
   /**
