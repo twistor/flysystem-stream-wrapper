@@ -32,12 +32,15 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase {
 
   public function testRegister() {
     $filesystem = new Filesystem(new NullAdapter());
-    FlysystemStreamWrapper::register('test', $filesystem);
+    $this->assertTrue(FlysystemStreamWrapper::register('test', $filesystem));
 
     $this->assertTrue(in_array('test', stream_get_wrappers(), TRUE));
 
     // Registering twice should be a noop.
-    FlysystemStreamWrapper::register('test', $filesystem);
+    $this->assertFalse(FlysystemStreamWrapper::register('test', $filesystem));
+
+    $this->assertTrue(FlysystemStreamWrapper::unregister('test'));
+    $this->assertFalse(FlysystemStreamWrapper::unregister('test'));
   }
 
   public function testMeta() {

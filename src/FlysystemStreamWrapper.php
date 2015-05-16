@@ -58,14 +58,34 @@ class FlysystemStreamWrapper {
    *   The scheme.
    * @param \League\Flysystem\FilesystemInterface $filesystem
    *   The filesystem.
+   *
+   * @return bool
+   *   True if the protocal was registered, false if not.
    */
   public static function register($scheme, FilesystemInterface $filesystem) {
     if (in_array($scheme, stream_get_wrappers(), TRUE)) {
-      return;
+      return FALSE;
     }
 
-    stream_wrapper_register($scheme, __CLASS__);
     static::$filesystems[$scheme] = $filesystem;
+    return stream_wrapper_register($scheme, __CLASS__);
+  }
+
+  /**
+   * Unegisters a stream wrapper.
+   *
+   * @param string $scheme
+   *   The scheme.
+   *
+   * @return bool
+   *   True if the protocal was unregistered, false if not.
+   */
+  public static function unregister($scheme) {
+    if (!in_array($scheme, stream_get_wrappers(), TRUE)) {
+      return FALSE;
+    }
+
+    return stream_wrapper_unregister($scheme);
   }
 
   /**
