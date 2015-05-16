@@ -45,7 +45,7 @@ class FlysystemStreamWrapper {
   /**
    * Instance URI (stream).
    *
-   * A stream is referenced as "scheme://target".
+   * A stream is referenced as "protocol://target".
    *
    * @var string
    */
@@ -54,47 +54,47 @@ class FlysystemStreamWrapper {
   /**
    * Registers the stream wrapper if not already registered.
    *
-   * @param string $scheme
-   *   The scheme.
+   * @param string $protocol
+   *   The protocol.
    * @param \League\Flysystem\FilesystemInterface $filesystem
    *   The filesystem.
    *
    * @return bool
    *   True if the protocal was registered, false if not.
    */
-  public static function register($scheme, FilesystemInterface $filesystem) {
-    if (in_array($scheme, stream_get_wrappers(), TRUE)) {
+  public static function register($protocol, FilesystemInterface $filesystem) {
+    if (in_array($protocol, stream_get_wrappers(), TRUE)) {
       return FALSE;
     }
 
-    static::$filesystems[$scheme] = $filesystem;
-    return stream_wrapper_register($scheme, __CLASS__);
+    static::$filesystems[$protocol] = $filesystem;
+    return stream_wrapper_register($protocol, __CLASS__);
   }
 
   /**
    * Unegisters a stream wrapper.
    *
-   * @param string $scheme
-   *   The scheme.
+   * @param string $protocol
+   *   The protocol.
    *
    * @return bool
    *   True if the protocal was unregistered, false if not.
    */
-  public static function unregister($scheme) {
-    if (!in_array($scheme, stream_get_wrappers(), TRUE)) {
+  public static function unregister($protocol) {
+    if (!in_array($protocol, stream_get_wrappers(), TRUE)) {
       return FALSE;
     }
 
-    return stream_wrapper_unregister($scheme);
+    return stream_wrapper_unregister($protocol);
   }
 
   /**
-   * Returns the scheme from the internal URI.
+   * Returns the protocol from the internal URI.
    *
    * @return string
-   *   The scheme.
+   *   The protocol.
    */
-  protected function getScheme() {
+  protected function getProtocol() {
     return substr($this->uri, 0, strpos($this->uri, '://'));
   }
 
@@ -460,10 +460,10 @@ class FlysystemStreamWrapper {
       return $this->filesystem;
     }
 
-    $scheme = $this->getScheme();
+    $protocol = $this->getProtocol();
 
-    if (isset(static::$filesystems[$scheme])) {
-      $this->filesystem = static::$filesystems[$scheme];
+    if (isset(static::$filesystems[$protocol])) {
+      $this->filesystem = static::$filesystems[$protocol];
     }
     else {
       $this->filesystem = new Filesystem(new NullAdapter());
