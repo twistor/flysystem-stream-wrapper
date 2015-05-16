@@ -453,14 +453,8 @@ class FlysystemStreamWrapper {
   protected function mergeMeta(array $metadata) {
     $ret = static::$defaultMeta;
 
-    if ($metadata['type'] === 'dir') {
-      // Mode 0777.
-      $ret['mode'] = 16895;
-    }
-    elseif ($metadata['type'] === 'file') {
-      // Mode 0666.
-      $ret['mode'] = 33204;
-    }
+    // Dirs are 0777. Files are 0666.
+    $ret['mode'] = $metadata['type'] === 'dir' ? 16895 : 33204;
 
     if (isset($metadata['size'])) {
       $ret['size'] = $metadata['size'];

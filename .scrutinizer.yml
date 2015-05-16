@@ -16,6 +16,9 @@ checks:
     fix_linefeed: true
     fix_line_ending: true
     fix_doc_comments: true
+    non_commented_empty_catch_block: false
+    encourage_single_quotes: true
+    unused_parameters: false
 tools:
   external_code_coverage:
     timeout: 600
