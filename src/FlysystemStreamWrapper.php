@@ -446,7 +446,6 @@ class FlysystemStreamWrapper {
       $this->filesystem = static::$filesystems[$scheme];
     }
     else {
-      print $this->uri;
       $this->filesystem = new Filesystem(new NullAdapter());
     }
 
