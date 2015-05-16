@@ -9,9 +9,11 @@ use Twistor\FlysystemStreamWrapper;
 
 class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase {
 
-  protected $testDir = __DIR__ . '/testdir';
+  protected $testDir;
 
   public function setUp() {
+    $this->testDir = __DIR__ . '/testdir';
+
     $filesystem = new Filesystem(new Local(__DIR__));
     $filesystem->deleteDir('testdir');
     $filesystem->createDir('testdir');
