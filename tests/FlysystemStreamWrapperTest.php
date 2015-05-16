@@ -148,4 +148,16 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase {
     $this->assertFalse(flock($handle, LOCK_SH));
   }
 
+  public function testSetOption() {
+    $filesystem = $this->getFilesystem();
+
+    $handle = fopen('flysystem://thing', 'r+');
+
+    $this->assertTrue(stream_set_blocking($handle, 0));
+    $this->assertFalse(stream_set_timeout($handle, 10));
+    $this->assertSame(stream_set_write_buffer($handle, 100), -1);
+
+    fclose($handle);
+  }
+
 }

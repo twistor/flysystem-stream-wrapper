@@ -212,7 +212,7 @@ class FlysystemStreamWrapper {
    * {@inheritdoc}
    */
   public function stream_cast($cast_as) {
-    return $this->handle ?: FALSE;
+    return $this->handle;
   }
 
   /**
@@ -250,6 +250,7 @@ class FlysystemStreamWrapper {
   public function stream_lock($operation) {
     return flock($this->handle, $operation);
   }
+
   /**
    * {@inheritdoc}
    */
@@ -316,7 +317,7 @@ class FlysystemStreamWrapper {
    * {@inheritdoc}
    */
   public function stream_seek($offset, $whence = SEEK_SET) {
-    return !fseek($this->handle, $offset, $whence);
+    return fseek($this->handle, $offset, $whence) === 0;
   }
 
   /**
@@ -328,10 +329,15 @@ class FlysystemStreamWrapper {
         return stream_set_blocking($this->handle, $arg1);
 
       case STREAM_OPTION_READ_TIMEOUT:
-        return stream_set_timeout($this->handle, $arg1, $arg2);
+        // Not supported yet. There might be a way to use this to pass a timeout
+        // to the underlying adapter.
+        // return stream_set_timeout($this->handle, $arg1, $arg2);
+        return FALSE;
 
       case STREAM_OPTION_WRITE_BUFFER:
-        return stream_set_write_buffer($this->handle, $arg1, $arg2);
+        // Not supported. In the future, this could be supported.
+        // return stream_set_write_buffer($this->handle, $arg2) === 0;
+        return FALSE;
     }
   }
 
