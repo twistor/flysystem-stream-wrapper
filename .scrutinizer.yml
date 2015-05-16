@@ -15,7 +15,6 @@ checks:
     fix_php_opening_tag: true
     fix_linefeed: true
     fix_line_ending: true
-    fix_identation_2spaces: true
     fix_doc_comments: true
 tools:
   external_code_coverage:
