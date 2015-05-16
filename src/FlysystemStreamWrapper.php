@@ -2,10 +2,8 @@
 
 namespace Twistor;
 
-use League\Flysystem\Adapter\NullAdapter;
 use League\Flysystem\FileExistsException;
 use League\Flysystem\FileNotFoundException;
-use League\Flysystem\Filesystem;
 use League\Flysystem\FilesystemInterface;
 use League\Flysystem\RootViolationException;
 
@@ -549,14 +547,7 @@ class FlysystemStreamWrapper
             return $this->filesystem;
         }
 
-        $protocol = $this->getProtocol();
-
-        if (isset(static::$filesystems[$protocol])) {
-            $this->filesystem = static::$filesystems[$protocol];
-        } else {
-            $this->filesystem = new Filesystem(new NullAdapter());
-        }
-
+        $this->filesystem = static::$filesystems[$this->getProtocol()];
         return $this->filesystem;
     }
 }
