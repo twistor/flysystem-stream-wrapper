@@ -153,8 +153,7 @@ class FlysystemStreamWrapper {
    */
   public function mkdir($uri, $mode, $options) {
     $this->uri = $uri;
-    // @todo mode handling.
-    // $recursive = (bool) ($options & STREAM_MKDIR_RECURSIVE);
+    // @todo mode and recursive handling.
     return $this->getFilesystem()->createDir($this->getTarget());
   }
 
@@ -256,7 +255,6 @@ class FlysystemStreamWrapper {
    */
   public function stream_metadata($uri, $option, $value) {
     $this->uri = $uri;
-    // $path = $this->getTarget();
 
     switch ($option) {
       case STREAM_META_ACCESS:
@@ -297,7 +295,9 @@ class FlysystemStreamWrapper {
         rewind($this->handle);
       }
     }
-    catch (FileNotFoundException $e) {}
+    catch (FileNotFoundException $e) {
+      // We're creating a new file.
+    }
 
     if ((bool) $this->handle && $options & STREAM_USE_PATH) {
       $opened_path = $path;
@@ -331,12 +331,10 @@ class FlysystemStreamWrapper {
       case STREAM_OPTION_READ_TIMEOUT:
         // Not supported yet. There might be a way to use this to pass a timeout
         // to the underlying adapter.
-        // return stream_set_timeout($this->handle, $arg1, $arg2);
         return FALSE;
 
       case STREAM_OPTION_WRITE_BUFFER:
         // Not supported. In the future, this could be supported.
-        // return stream_set_write_buffer($this->handle, $arg2) === 0;
         return FALSE;
     }
   }
@@ -394,7 +392,7 @@ class FlysystemStreamWrapper {
       trigger_error(sprintf('%s(%s): No such file or directory', 'unlink', $path), E_USER_WARNING);
     }
     catch (\UnexpectedValueException $e) {
-      // oops.
+      // Thrown when trying to iterate directories that are unreadable.
     }
 
     return FALSE;
