@@ -22,6 +22,27 @@ class FlysystemStreamWrapper {
   protected static $filesystems = [];
 
   /**
+   * Default return value of url_stat().
+   *
+   * @var array
+   */
+  protected static $defaultMeta = [
+    'dev' => 0,
+    'ino' => 0,
+    'mode' => 0,
+    'nlink' => 0,
+    'uid' => 0,
+    'gid' => 0,
+    'rdev' => 0,
+    'size' => 0,
+    'atime' => 0,
+    'mtime' => 0,
+    'ctime' => 0,
+    'blksize' => -1,
+    'blocks' => -1,
+  ];
+
+  /**
    * The filesystem of the current stream wrapper.
    *
    * @var \League\Flysystem\FilesystemInterface
@@ -404,22 +425,6 @@ class FlysystemStreamWrapper {
   public function url_stat($uri, $flags) {
     $this->uri = $uri;
 
-    $ret = [
-      'dev' => 0,
-      'ino' => 0,
-      'mode' => 0,
-      'nlink' => 0,
-      'uid' => 0,
-      'gid' => 0,
-      'rdev' => 0,
-      'size' => 0,
-      'atime' => time(),
-      'mtime' => 0,
-      'ctime' => 0,
-      'blksize' => -1,
-      'blocks' => -1,
-    ];
-
     try {
       $metadata = $this->getFilesystem()->getMetadata($this->getTarget());
     }
@@ -430,8 +435,23 @@ class FlysystemStreamWrapper {
     // It's possible for getMetadata() to fail even if a file exists.
     // @todo Figure out the correct way to handle this.
     if ($metadata === FALSE) {
-      return $ret;
+      return static::$defaultMeta;
     }
+
+    return $this->mergeMeta($metadata);
+  }
+
+  /**
+   * Merges the available metadata from Filesystem::getMetadata().
+   *
+   * @param array $metadata
+   *   The metadata.
+   *
+   * @return array
+   *   All metadata with default values filled in.
+   */
+  protected function mergeMeta(array $metadata) {
+    $ret = static::$defaultMeta;
 
     if ($metadata['type'] === 'dir') {
       // Mode 0777.
@@ -449,6 +469,8 @@ class FlysystemStreamWrapper {
       $ret['mtime'] = $metadata['timestamp'];
       $ret['ctime'] = $metadata['timestamp'];
     }
+
+    $ret['atime'] = time();
 
     return array_merge(array_values($ret), $ret);
   }
