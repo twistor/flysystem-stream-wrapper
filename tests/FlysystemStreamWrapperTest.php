@@ -167,4 +167,33 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase {
     fclose($handle);
   }
 
+  public function testDirectoryIteration() {
+    $filesystem = $this->getFilesystem();
+
+    mkdir('flysystem://one');
+    mkdir('flysystem://two');
+    mkdir('flysystem://three');
+
+    $dir = opendir('flysystem://');
+    $this->assertSame(readdir($dir), 'one');
+    $this->assertSame(readdir($dir), 'two');
+    $this->assertSame(readdir($dir), 'three');
+
+    rewinddir($dir);
+    $this->assertSame(readdir($dir), 'one');
+
+    closedir($dir);
+  }
+
+  public function testSelect() {
+    $filesystem = $this->getFilesystem();
+
+    $handle = fopen('flysystem://thing', 'r+');
+    $read = [$handle];
+    $write = NULL;
+    $except = NULL;
+    $this->assertSame(stream_select($read, $write, $except, 10), 1);
+    fclose($handle);
+  }
+
 }
