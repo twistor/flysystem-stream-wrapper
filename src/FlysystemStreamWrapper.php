@@ -299,18 +299,18 @@ class FlysystemStreamWrapper
 
         switch ($option) {
             case STREAM_META_ACCESS:
-            return true;
+                return true;
 
             case STREAM_META_TOUCH:
-            // Emulate touch().
-            $filesystem = $this->getFilesystem();
-            $path = $this->getTarget();
+                // Emulate touch().
+                $filesystem = $this->getFilesystem();
+                $path = $this->getTarget();
 
-            if (!$filesystem->has($path)) {
-                $filesystem->put($path, '');
-            }
+                if (!$filesystem->has($path)) {
+                    $filesystem->put($path, '');
+                }
 
-            return true;
+                return true;
         }
 
         // @todo

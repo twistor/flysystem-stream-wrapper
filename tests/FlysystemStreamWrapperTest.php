@@ -62,7 +62,7 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
 
         // Test touch.
         $this->assertTrue(touch('flysystem://touched'));
-
+        $this->assertTrue(file_exists($this->testDir . '/touched'));
         // Chown isn't supported.
         $this->assertFalse(chown('flysystem://touched', 'asfasf'));
 
