@@ -13,7 +13,7 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
 
     public function setUp()
     {
-        $this->testDir = __DIR__.'/testdir';
+        $this->testDir = __DIR__ . '/testdir';
 
         $filesystem = new Filesystem(new Local(__DIR__));
         $filesystem->deleteDir('testdir');
@@ -75,7 +75,7 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
         $filesystem = $this->getFilesystem();
 
         file_put_contents('flysystem://test_file.txt', 'contents');
-        $this->assertSame(file_get_contents($this->testDir.'/test_file.txt'), 'contents');
+        $this->assertSame(file_get_contents($this->testDir . '/test_file.txt'), 'contents');
         $this->assertSame(file_get_contents('flysystem://test_file.txt'), 'contents');
 
         // Test unlink.
@@ -111,12 +111,12 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
     public function testRmdir()
     {
         $filesystem = $this->getFilesystem();
-        mkdir($this->testDir.'/bad');
+        mkdir($this->testDir . '/bad');
 
-        chmod($this->testDir.'/bad', 0000);
+        chmod($this->testDir . '/bad', 0000);
         $this->assertFalse(rmdir('flysystem://bad'));
 
-        chmod($this->testDir.'/bad', 0755);
+        chmod($this->testDir . '/bad', 0755);
         $this->assertTrue(rmdir('flysystem://bad'));
     }
 
