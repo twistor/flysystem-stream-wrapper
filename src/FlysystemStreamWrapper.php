@@ -82,12 +82,11 @@ class FlysystemStreamWrapper
      */
     public static function register($protocol, FilesystemInterface $filesystem)
     {
-        if (in_array($protocol, stream_get_wrappers(), true)) {
+        if (static::streamWrapperExists($protocol)) {
             return false;
         }
 
         static::$filesystems[$protocol] = $filesystem;
-
         return stream_wrapper_register($protocol, __CLASS__);
     }
 
@@ -100,12 +99,24 @@ class FlysystemStreamWrapper
      */
     public static function unregister($protocol)
     {
-        if (!in_array($protocol, stream_get_wrappers(), true)) {
+        if (!static::streamWrapperExists($protocol)) {
             return false;
         }
 
         unset(static::$filesystems[$protocol]);
         return stream_wrapper_unregister($protocol);
+    }
+
+    /**
+     * Determines if a protocol is registered.
+     *
+     * @param string $protocol The protocol to check.
+     *
+     * @return bool True if it is registered, false if not.
+     */
+    protected static function streamWrapperExists($protocol)
+    {
+        return in_array($protocol, stream_get_wrappers(), true);
     }
 
     /**
@@ -154,8 +165,8 @@ class FlysystemStreamWrapper
     public function mkdir($uri, $mode, $options)
     {
         $this->uri = $uri;
-    // @todo mode and recursive handling.
-    return $this->getFilesystem()->createDir($this->getTarget());
+        // @todo mode and recursive handling.
+        return $this->getFilesystem()->createDir($this->getTarget());
     }
 
     /**
@@ -164,9 +175,9 @@ class FlysystemStreamWrapper
     public function rename($uri_from, $uri_to)
     {
         // Ignore useless renames.
-    if ($uri_from === $uri_to) {
-        return true;
-    }
+        if ($uri_from === $uri_to) {
+            return true;
+        }
 
         $this->uri = $uri_from;
 
@@ -293,7 +304,8 @@ class FlysystemStreamWrapper
      *
      * @return bool True if successful, false if not.
      */
-    protected function touch($uri) {
+    protected function touch($uri)
+    {
         $filesystem = $this->getFilesystem();
         $path = $this->getTarget($uri);
 

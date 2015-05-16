@@ -197,6 +197,8 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
         $this->assertSame(readdir($dir), 'two');
         $this->assertSame(readdir($dir), 'three');
 
+        $this->assertFalse(readdir($dir));
+
         rewinddir($dir);
         $this->assertSame(readdir($dir), 'one');
 
