@@ -189,21 +189,34 @@ class FlysystemStreamWrapper {
 
     $this->uri = $uri_from;
 
-    $filesystem = $this->getFilesystem();
     $path_from = $this->getTarget($uri_from);
     $path_to = $this->getTarget($uri_to);
 
+    return $this->doRename($path_from, $path_to);
+  }
+
+  /**
+   * Performs a rename.
+   *
+   * @param string $path_from
+   *   The source path.
+   * @param string $path_to
+   *   The destination path.
+   *
+   * @return bool
+   *   True if successful, false if not.
+   */
+  protected function doRename($path_from, $path_to) {
     try {
-      return $filesystem->rename($path_from, $path_to);
+      return $this->getFilesystem()->rename($path_from, $path_to);
     }
     catch (FileNotFoundException $e) {
       trigger_error(sprintf('%s(%s,%s): No such file or directory', __FUNCTION__, $path_from, $path_to), E_USER_WARNING);
     }
-
-    // PHP's rename() will overwrite an existing file. Emulate that.
     catch (FileExistsException $e) {
+      // PHP's rename() will overwrite an existing file. Emulate that.
       if ($this->doUnlink($path_to)) {
-        return $filesystem->rename($path_from, $path_to);
+        return $this->getFilesystem()->rename($path_from, $path_to);
       }
     }
 
