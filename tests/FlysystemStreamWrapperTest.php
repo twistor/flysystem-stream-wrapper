@@ -145,7 +145,14 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase {
   public function testLock() {
     $filesystem = $this->getFilesystem();
     $handle = fopen('flysystem://file', 'r+');
-    $this->assertFalse(flock($handle, LOCK_SH));
+
+    // HHVM allows locks on memory handles?
+    if (defined('HHVM_VERSION')) {
+      $this->assertTrue(flock($handle, LOCK_SH));
+    }
+    else {
+      $this->assertFalse(flock($handle, LOCK_SH));
+    }
   }
 
   public function testSetOption() {
