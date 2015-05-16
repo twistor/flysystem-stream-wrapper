@@ -209,7 +209,8 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
     {
         $filesystem = $this->getFilesystem();
 
-        $handle = fopen('flysystem://thing', 'r+');
+        $handle = fopen('flysystem://thing', 'r+', TRUE);
+
         $read = [$handle];
         $write = null;
         $except = null;
