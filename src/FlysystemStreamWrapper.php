@@ -12,6 +12,10 @@ use League\Flysystem\RootViolationException;
  */
 class FlysystemStreamWrapper
 {
+    const FSEEK_START = 0;
+
+    const FSEEK_END = -1;
+
     /**
      * Default return value of url_stat().
      *
@@ -526,16 +530,17 @@ class FlysystemStreamWrapper
 
             case 'w':
                 $this->needsFlush = true;
+
                 return fopen('php://temp', $mode);
 
             case 'a':
-                return $this->getWritableStream($path, $mode, false);
+                return $this->getWritableStream($path, $mode, static::FSEEK_END);
 
             case 'x':
                 return $this->getXStream($path, $mode);
 
             case 'c':
-                return $this->getWritableStream($path, $mode, true);
+                return $this->getWritableStream($path, $mode, static::FSEEK_START);
         }
 
         return false;
@@ -565,25 +570,28 @@ class FlysystemStreamWrapper
         // Just pass the handle through if read-only mode.
         if (strpos($mode, '+') === false) {
             $this->isReadOnly = true;
+
             return $handle;
         }
 
-        return $this->cloneStream($handle, $mode);
+        return $this->cloneStream($handle, $mode, static::FSEEK_START);
     }
 
     /**
      * Returns a writable stream for a given path and mode.
      *
-     * @param string $path   The path to open.
-     * @param string $mode   The mode to open the stream in.
-     * @param bool   $rewind Whether the stream should be rewound.
+     * @param string $path The path to open.
+     * @param string $mode The mode to open the stream in.
+     * @param int    $seek The position to seek to after the copy.
      *
      * @return resource|bool The file handle, or false.
      */
-    protected function getWritableStream($path, $mode, $rewind)
+    protected function getWritableStream($path, $mode, $seek)
     {
         if ($handle = $this->getStreamWithoutError($path)) {
-            return $this->cloneStream($handle, $mode, $rewind);
+            $handle = $this->cloneStream($handle, $mode, $seek);
+
+            return $handle;
         }
         $this->needsFlush = true;
 
@@ -633,19 +641,21 @@ class FlysystemStreamWrapper
      *
      * @param resource $handle The file handle to clone.
      * @param string   $mode   The mode to create the new file handle with.
-     * @param bool     $rewind (optional) Whether to rewind the handle after copying.
+     * @param int      $seek   Where to seek to after the copy.
      *
      * @return resource|bool The file handle, or false.
      */
-    protected function cloneStream($handle, $mode, $rewind = true)
+    protected function cloneStream($handle, $mode, $seek)
     {
         $out = fopen('php://temp', $mode);
 
         stream_copy_to_stream($handle, $out);
         fclose($handle);
 
-        if ($rewind) {
-            rewind($out);
+        if ($seek === static::FSEEK_END) {
+            fseek($out, 0, SEEK_END);
+        } else {
+            fseek($out, $seek);
         }
 
         return $out;
