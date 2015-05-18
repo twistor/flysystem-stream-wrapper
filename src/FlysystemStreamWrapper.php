@@ -13,13 +13,6 @@ use League\Flysystem\RootViolationException;
 class FlysystemStreamWrapper
 {
     /**
-     * The registered filesystems.
-     *
-     * @var \League\Flysystem\FilesystemInterface[]
-     */
-    protected static $filesystems = [];
-
-    /**
      * Default return value of url_stat().
      *
      * @var array
@@ -39,6 +32,13 @@ class FlysystemStreamWrapper
         'blksize' => -1,
         'blocks' => -1,
     ];
+
+    /**
+     * The registered filesystems.
+     *
+     * @var \League\Flysystem\FilesystemInterface[]
+     */
+    protected static $filesystems = [];
 
     /**
      * The filesystem of the current stream wrapper.
@@ -62,6 +62,13 @@ class FlysystemStreamWrapper
     protected $listing;
 
     /**
+     * Whether the handle should be flushed.
+     *
+     * @var bool
+     */
+    protected $needsFlush = false;
+
+    /**
      * Instance URI (stream).
      *
      * A stream is referenced as "protocol://target".
@@ -73,7 +80,7 @@ class FlysystemStreamWrapper
     /**
      * Registers the stream wrapper protocol if not already registered.
      *
-     * @param string $protocol The protocol.
+     * @param string                                $protocol   The protocol.
      * @param \League\Flysystem\FilesystemInterface $filesystem The filesystem.
      *
      * @return bool True if the protocal was registered, false if not.
@@ -85,6 +92,7 @@ class FlysystemStreamWrapper
         }
 
         static::$filesystems[$protocol] = $filesystem;
+
         return stream_wrapper_register($protocol, __CLASS__);
     }
 
@@ -102,6 +110,7 @@ class FlysystemStreamWrapper
         }
 
         unset(static::$filesystems[$protocol]);
+
         return stream_wrapper_unregister($protocol);
     }
 
@@ -198,7 +207,7 @@ class FlysystemStreamWrapper
         try {
             return $this->getFilesystem()->rename($path_from, $path_to);
         } catch (FileNotFoundException $e) {
-            trigger_error(sprintf('%s(%s,%s): No such file or directory', __FUNCTION__, $path_from, $path_to), E_USER_WARNING);
+            trigger_error(sprintf('rename(%s,%s): No such file or directory', $path_from, $path_to), E_USER_WARNING);
         } catch (FileExistsException $e) {
             // PHP's rename() will overwrite an existing file. Emulate that.
             if ($this->doUnlink($path_to)) {
@@ -218,7 +227,7 @@ class FlysystemStreamWrapper
         try {
             return $this->getFilesystem()->deleteDir($this->getTarget());
         } catch (RootViolationException $e) {
-            trigger_error(sprintf('%s(%s): Cannot remove the root directory', __FUNCTION__, $this->getTarget()), E_USER_WARNING);
+            trigger_error(sprintf('rmdir(%s): Cannot remove the root directory', $uri), E_USER_WARNING);
         } catch (\UnexpectedValueException $e) {
             // Thrown by a directory interator when the perms fail.
         }
@@ -255,10 +264,12 @@ class FlysystemStreamWrapper
      */
     public function stream_flush()
     {
+        if (!$this->needsFlush) {
+            return true;
+        }
         // Calling putStream() will rewind our handle. flush() shouldn't change
         // the position of the file.
         $pos = ftell($this->handle);
-
         $success = $this->getFilesystem()->putStream($this->getTarget(), $this->handle);
 
         fseek($this->handle, $pos);
@@ -288,7 +299,7 @@ class FlysystemStreamWrapper
                 return true;
 
             case STREAM_META_TOUCH:
-                return $this->touch($uri);
+                return $this->touch($this->getTarget());
 
             default:
                 return false;
@@ -298,14 +309,13 @@ class FlysystemStreamWrapper
     /**
      * Emulates touch().
      *
-     * @param string $uri The URI to touch.
+     * @param string $path The path to touch.
      *
      * @return bool True if successful, false if not.
      */
-    protected function touch($uri)
+    protected function touch($path)
     {
         $filesystem = $this->getFilesystem();
-        $path = $this->getTarget($uri);
 
         if (!$filesystem->has($path)) {
             return $filesystem->put($path, '');
@@ -322,45 +332,13 @@ class FlysystemStreamWrapper
         $this->uri = $uri;
         $path = $this->getTarget();
 
-        $this->handle = $this->getWritableStream($path);
+        $this->handle = $this->getStream($path, $mode);
 
-        if ((bool) $this->handle && $options & STREAM_USE_PATH) {
+        if ($this->handle && $options & STREAM_USE_PATH) {
             $opened_path = $path;
         }
 
         return (bool) $this->handle;
-    }
-
-    /**
-     * Returns a writable stream given a read-only stream.
-     *
-     * @param string $path The internal file path.
-     *
-     * @return resource A writable stream.
-     */
-    protected function getWritableStream($path)
-    {
-        $handle = fopen('php://temp', 'r+');
-
-        try {
-            $reader = $this->getFilesystem()->readStream($path);
-        } catch (FileNotFoundException $e) {
-            // We're creating a new file.
-            return $handle;
-        }
-
-        // Nothing to copy.
-        if (!$reader) {
-            return $handle;
-        }
-
-        // Some adapters are read only streams, so we can't depend on writing to
-        // them.
-        stream_copy_to_stream($reader, $handle);
-        fclose($reader);
-        rewind($handle);
-
-        return $handle;
     }
 
     /**
@@ -420,6 +398,8 @@ class FlysystemStreamWrapper
      */
     public function stream_truncate($new_size)
     {
+        $this->needsFlush = true;
+
         return ftruncate($this->handle, $new_size);
     }
 
@@ -428,6 +408,8 @@ class FlysystemStreamWrapper
      */
     public function stream_write($data)
     {
+        $this->needsFlush = true;
+
         return fwrite($this->handle, $data);
     }
 
@@ -453,7 +435,7 @@ class FlysystemStreamWrapper
         try {
             return $this->getFilesystem()->delete($path);
         } catch (FileNotFoundException $e) {
-            trigger_error(sprintf('%s(%s): No such file or directory', 'unlink', $path), E_USER_WARNING);
+            trigger_error(sprintf('unlink(%s): No such file or directory', $path), E_USER_WARNING);
         } catch (\UnexpectedValueException $e) {
             // Thrown when trying to iterate directories that are unreadable.
         }
@@ -511,6 +493,146 @@ class FlysystemStreamWrapper
     }
 
     /**
+     * Returns a stream for a given path and mode.
+     *
+     * @param string $path The path to open.
+     * @param string $mode The mode to open the stream in.
+     *
+     * @return resource|bool The file handle, or false.
+     */
+    protected function getStream($path, $mode)
+    {
+        switch ($mode[0]) {
+            case 'r':
+                return $this->getReadStream($path, $mode);
+
+            case 'w':
+                $this->needsFlush = true;
+                return fopen('php://temp', $mode);
+
+            case 'a':
+                return $this->getWritableStream($path, $mode, false);
+
+            case 'x':
+                return $this->getXStream($path, $mode);
+
+            case 'c':
+                return $this->getWritableStream($path, $mode, true);
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns a read-only stream for a given path and mode.
+     *
+     * @param string $path The path to open.
+     * @param string $mode The mode to open the stream in.
+     *
+     * @return resource|bool The file handle, or false.
+     */
+    protected function getReadStream($path, $mode)
+    {
+        try {
+            $handle = $this->getFilesystem()->readStream($path);
+        } catch (FileNotFoundException $e) {
+            trigger_error(sprintf('fopen(%s): failed to open stream: No such file or directory', $this->uri), E_USER_WARNING);
+
+            return false; // @codeCoverageIgnore
+        }
+
+        if (!$handle) {
+            return false;
+        }
+        // Just pass the handle through if read-only mode.
+        if (strpos($mode, '+') === false) {
+            return $handle;
+        }
+
+        return $this->cloneStream($handle, $mode);
+    }
+
+    /**
+     * Returns a writable stream for a given path and mode.
+     *
+     * @param string $path   The path to open.
+     * @param string $mode   The mode to open the stream in.
+     * @param bool   $rewind Whether the stream should be rewound.
+     *
+     * @return resource|bool The file handle, or false.
+     */
+    protected function getWritableStream($path, $mode, $rewind)
+    {
+        if ($handle = $this->getStreamWithoutError($path)) {
+            return $this->cloneStream($handle, $mode, $rewind);
+        }
+        $this->needsFlush = true;
+
+        return fopen('php://temp', $mode);
+    }
+
+    /**
+     * Returns a writable stream for a given path and mode.
+     *
+     * Triggers a warning if the file exists.
+     *
+     * @param string $path The path to open.
+     * @param string $mode The mode to open the stream in.
+     *
+     * @return resource|bool The file handle, or false.
+     */
+    protected function getXStream($path, $mode)
+    {
+        if ($this->getFilesystem()->has($path)) {
+            trigger_error(sprintf('fopen(%s): failed to open stream: File exists', $this->uri), E_USER_WARNING);
+
+            return false; // @codeCoverageIgnore
+        }
+        $this->needsFlush = true;
+
+        return fopen('php://temp', $mode);
+    }
+
+    /**
+     * Returns a stream from a path supressing exceptions.
+     *
+     * @param string $path The path to open.
+     *
+     * @return resource|bool The file handle, or false.
+     */
+    protected function getStreamWithoutError($path)
+    {
+        try {
+            return $this->getFilesystem()->readStream($path);
+        } catch (FileNotFoundException $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Clones a stream.
+     *
+     * @param resource $handle The file handle to clone.
+     * @param string   $mode   The mode to create the new file handle with.
+     * @param bool     $rewind (optional) Whether to rewind the handle after copying.
+     *
+     * @return resource|bool The file handle, or false.
+     */
+    protected function cloneStream($handle, $mode, $rewind = true)
+    {
+        $out = fopen('php://temp', $mode);
+
+        stream_copy_to_stream($handle, $out);
+        fclose($handle);
+
+        if ($rewind) {
+            rewind($out);
+        }
+
+        return $out;
+    }
+
+    /**
      * Returns the protocol from the internal URI.
      *
      * @return string The protocol.
@@ -548,6 +670,7 @@ class FlysystemStreamWrapper
         }
 
         $this->filesystem = static::$filesystems[$this->getProtocol()];
+
         return $this->filesystem;
     }
 }

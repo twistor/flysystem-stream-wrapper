@@ -166,7 +166,7 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
 
     public function testSelect()
     {
-        $handle = fopen('flysystem://thing', 'w+', TRUE);
+        $handle = fopen('flysystem://thing', 'w+', true);
 
         $read = [$handle];
         $write = null;
@@ -175,7 +175,49 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
         fclose($handle);
     }
 
-    public function testWriteEmptyFile() {
+    public function testAppendMode()
+    {
+        $this->putContent('test_file.txt', 'some file content');
+        $handle = fopen('flysystem://test_file.txt', 'a+');
+        $this->assertSame(17, ftell($handle));
+        fclose($handle);
+
+        $handle = fopen('flysystem://test_file.txt', 'c+');
+        $this->assertSame(0, ftell($handle));
+        $this->assertSame('some file content', fread($handle, 100));
+        fclose($handle);
+
+        // Test create file.
+        $handle = fopen('flysystem://new_file.txt', 'a');
+        $this->assertSame(5, fwrite($handle, '12345'));
+        fclose($handle);
+        $this->assertFileContent('new_file.txt', '12345');
+    }
+
+    /**
+     * @expectedException PHPUnit_Framework_Error_Warning
+     */
+    public function testXMode()
+    {
+        $handle = fopen('flysystem://new_file.txt', 'x+');
+        $this->assertSame(5, fwrite($handle, '12345'));
+        fclose($handle);
+        $this->assertFileContent('new_file.txt', '12345');
+
+        // Throws warning.
+        $handle = fopen('flysystem://new_file.txt', 'x+');
+    }
+
+    /**
+     * @expectedException PHPUnit_Framework_Error_Warning
+     */
+    public function testInvalidMode()
+    {
+        $this->assertFalse(fopen('flysystem://test_file.txt', 'i'));
+    }
+
+    public function testWriteEmptyFile()
+    {
         $this->putContent('file', '');
         $this->assertWrapperFileExists('file');
     }
@@ -207,7 +249,8 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
     /**
      * @expectedException PHPUnit_Framework_Error_Warning
      */
-    public function testReadMissing() {
+    public function testReadMissing()
+    {
         fopen('flysystem://doesnotexist', 'rbt');
     }
 
@@ -229,7 +272,8 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
         $this->assertFalse(file_exists($this->testDir . "/$path"));
     }
 
-    protected function putContent($file, $content) {
+    protected function putContent($file, $content)
+    {
         $len = file_put_contents("flysystem://$file", $content);
         $this->assertSame(strlen($content), $len);
         $this->assertFileContent($file, $content);
