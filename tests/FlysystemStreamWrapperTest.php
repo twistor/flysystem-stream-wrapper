@@ -175,10 +175,20 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
         fclose($handle);
     }
 
+    public function testReadMode()
+    {
+        $this->putContent('test_file.txt', 'some file content');
+        $handle = fopen('flysystem://test_file.txt', 'rb');
+        $this->assertSame('some file content', fread($handle, 100));
+        $this->assertSame(0, fwrite($handle, 'more content'));
+        $this->assertFalse(ftruncate($handle, 0));
+        fclose($handle);
+    }
+
     public function testAppendMode()
     {
         $this->putContent('test_file.txt', 'some file content');
-        $handle = fopen('flysystem://test_file.txt', 'a+');
+        $handle = fopen('flysystem://test_file.txt', 'a');
         $this->assertSame(17, ftell($handle));
         fclose($handle);
 

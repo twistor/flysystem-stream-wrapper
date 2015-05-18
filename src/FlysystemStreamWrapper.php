@@ -55,6 +55,16 @@ class FlysystemStreamWrapper
     protected $handle;
 
     /**
+     * Whether the handle is read-only.
+     *
+     * The stream returned from Flysystem may not actually be read-only, This
+     * ensures read-only behavior.
+     *
+     * @var bool
+     */
+    protected $isReadOnly = false;
+
+    /**
      * A directory listing.
      *
      * @var array
@@ -398,6 +408,10 @@ class FlysystemStreamWrapper
      */
     public function stream_truncate($new_size)
     {
+        if ($this->isReadOnly) {
+            return false;
+        }
+
         $this->needsFlush = true;
 
         return ftruncate($this->handle, $new_size);
@@ -408,6 +422,10 @@ class FlysystemStreamWrapper
      */
     public function stream_write($data)
     {
+        if ($this->isReadOnly) {
+            return 0;
+        }
+
         $this->needsFlush = true;
 
         return fwrite($this->handle, $data);
@@ -546,6 +564,7 @@ class FlysystemStreamWrapper
         }
         // Just pass the handle through if read-only mode.
         if (strpos($mode, '+') === false) {
+            $this->isReadOnly = true;
             return $handle;
         }
 
