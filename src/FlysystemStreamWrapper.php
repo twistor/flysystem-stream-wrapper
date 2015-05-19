@@ -159,7 +159,9 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * {@inheritdoc}
+     * Closes the directory handle.
+     *
+     * @return bool True on success, false on failure.
      */
     public function dir_closedir()
     {
@@ -169,7 +171,12 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * {@inheritdoc}
+     * Opens a directory handle.
+     *
+     * @param string $uri     The URL that was passed to opendir().
+     * @param int    $options Whether or not to enforce safe_mode (0x04).
+     *
+     * @return bool True on success, false on failure.
      */
     public function dir_opendir($uri, $options)
     {
@@ -180,7 +187,9 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * {@inheritdoc}
+     * Reads an entry from directory handle.
+     *
+     * @return string|bool The next filename, or false if there is no next file.
      */
     public function dir_readdir()
     {
@@ -191,15 +200,25 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * {@inheritdoc}
+     * Rewinds the directory handle.
+     *
+     * @return bool True on success, false on failure.
      */
     public function dir_rewinddir()
     {
         reset($this->listing);
+
+        return true;
     }
 
     /**
-     * {@inheritdoc}
+     * Creates a directory.
+     *
+     * @param string $uri
+     * @param int    $mode
+     * @param int    $options
+     *
+     * @return bool True on success, false on failure.
      */
     public function mkdir($uri, $mode, $options)
     {
@@ -224,7 +243,12 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * {@inheritdoc}
+     * Renames a file or directory.
+     *
+     * @param string $uri_from
+     * @param string $uri_to
+     *
+     * @return bool True on success, false on failure.
      */
     public function rename($uri_from, $uri_to)
     {
@@ -269,7 +293,12 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * {@inheritdoc}
+     * Removes a directory.
+     *
+     * @param string $uri
+     * @param int    $options
+     *
+     * @return bool True on success, false on failure.
      */
     public function rmdir($uri, $options)
     {
@@ -316,7 +345,11 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * {@inheritdoc}
+     * Retrieves the underlaying resource.
+     *
+     * @param int $cast_as
+     *
+     * @return resource|bool The stream resource used by the wrapper, or false.
      */
     public function stream_cast($cast_as)
     {
@@ -324,7 +357,7 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * {@inheritdoc}
+     * Closes the resource.
      */
     public function stream_close()
     {
@@ -332,7 +365,9 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * {@inheritdoc}
+     * Tests for end-of-file on a file pointer.
+     *
+     * @return bool True if the file is at the end, false if not.
      */
     public function stream_eof()
     {
@@ -340,7 +375,9 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * {@inheritdoc}
+     * Flushes the output.
+     *
+     * @return bool True on success, false on failure.
      */
     public function stream_flush()
     {
@@ -358,7 +395,11 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * {@inheritdoc}
+     * Advisory file locking.
+     *
+     * @param int $operation
+     *
+     * @return bool True on success, false on failure.
      */
     public function stream_lock($operation)
     {
@@ -366,7 +407,13 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * {@inheritdoc}
+     * Changes stream options.
+     *
+     * @param string $uri
+     * @param int    $options
+     * @param mixed  $value
+     *
+     * @return bool True on success, false on failure.
      */
     public function stream_metadata($uri, $option, $value)
     {
@@ -405,7 +452,16 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * {@inheritdoc}
+     * Opens file or URL.
+     *
+     * @param string $uri
+     * @param string $mode
+     * @param int    $options
+     * @param string &$opened_path
+     *
+     * @todo STREAM_REPORT_ERRORS
+     *
+     * @return bool True on success, false on failure.
      */
     public function stream_open($uri, $mode, $options, &$opened_path)
     {
@@ -422,7 +478,11 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * {@inheritdoc}
+     * Reads from stream.
+     *
+     * @param int $count
+     *
+     * @return string The bytes read.
      */
     public function stream_read($count)
     {
@@ -434,7 +494,12 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * {@inheritdoc}
+     * Seeks to specific location in a stream.
+     *
+     * @param int $offset
+     * @param int $whence
+     *
+     * @return bool True on success, false on failure.
      */
     public function stream_seek($offset, $whence = SEEK_SET)
     {
@@ -442,7 +507,13 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * {@inheritdoc}
+     * Changes stream options.
+     *
+     * @param int $option
+     * @param int $arg1
+     * @param int $arg2
+     *
+     * @return bool True on success, false on failure.
      */
     public function stream_set_option($option, $arg1, $arg2)
     {
@@ -461,7 +532,11 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * {@inheritdoc}
+     * Retrieves information about a file resource.
+     *
+     * @return array A similar array to stat().
+     *
+     * @see stat()
      */
     public function stream_stat()
     {
@@ -469,7 +544,9 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * {@inheritdoc}
+     * Retrieves the current position of a stream.
+     *
+     * @return int The current position of the stream.
      */
     public function stream_tell()
     {
@@ -477,7 +554,11 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * {@inheritdoc}
+     * Truncates the stream.
+     *
+     * @param int $new_size
+     *
+     * @return bool True on success, false on failure.
      */
     public function stream_truncate($new_size)
     {
@@ -495,7 +576,11 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * {@inheritdoc}
+     * Writes to the stream.
+     *
+     * @param string $data
+     *
+     * @return int The number of bytes that were successfully stored.
      */
     public function stream_write($data)
     {
@@ -518,7 +603,11 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * {@inheritdoc}
+     * Deletes a file.
+     *
+     * @param string $uri
+     *
+     * @return bool True on success, false on failure.
      */
     public function unlink($uri)
     {
@@ -546,7 +635,14 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * {@inheritdoc}
+     * Retrieves information about a file.
+     *
+     * @param string $uri
+     * @param int    $flags
+     *
+     * @return array Output similar to stat().
+     *
+     * @see stat()
      */
     public function url_stat($uri, $flags)
     {
