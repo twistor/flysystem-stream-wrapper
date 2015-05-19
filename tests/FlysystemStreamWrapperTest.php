@@ -206,11 +206,18 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
         $this->putContent('test_file.txt', 'some file content');
         $handle = fopen('flysystem://test_file.txt', 'a');
         $this->assertSame(17, ftell($handle));
+        $this->assertSame(0, fseek($handle, 0));
+
+        // Test write-only.
+        $this->assertSame('', fread($handle, 100));
+
+        $this->assertSame(5, fwrite($handle, '12345'));
         fclose($handle);
+        $this->assertFileContent('test_file.txt', 'some file content12345');
 
         $handle = fopen('flysystem://test_file.txt', 'c+');
         $this->assertSame(0, ftell($handle));
-        $this->assertSame('some file content', fread($handle, 100));
+        $this->assertSame('some file content12345', fread($handle, 100));
         fclose($handle);
 
         // Test create file.

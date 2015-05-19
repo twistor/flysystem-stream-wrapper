@@ -55,6 +55,13 @@ class FlysystemStreamWrapper
     protected $handle;
 
     /**
+     * Whether the handle is in append-only mode.
+     *
+     * @var bool
+     */
+    protected $isAppendOnly = false;
+
+    /**
      * Whether this handle is copy-on-write.
      *
      * @var bool
@@ -70,6 +77,13 @@ class FlysystemStreamWrapper
      * @var bool
      */
     protected $isReadOnly = false;
+
+    /**
+     * Whether the handle is write-only.
+     *
+     * @var bool
+     */
+    protected $isWriteOnly = false;
 
     /**
      * A directory listing.
@@ -363,6 +377,10 @@ class FlysystemStreamWrapper
      */
     public function stream_read($count)
     {
+        if ($this->isWriteOnly) {
+            return '';
+        }
+
         return fread($this->handle, $count);
     }
 
@@ -441,6 +459,11 @@ class FlysystemStreamWrapper
         if ($this->isCow) {
             $this->isCow = false;
             $this->handle = $this->cloneStream($this->handle);
+        }
+
+        // Enforce append semantics.
+        if ($this->isAppendOnly) {
+            fseek($this->handle, 0, SEEK_END);
         }
 
         return fwrite($this->handle, $data);
@@ -541,7 +564,7 @@ class FlysystemStreamWrapper
 
             case 'w':
                 $this->needsFlush = true;
-
+                $this->isWriteOnly = strpos($mode, '+') === false;
                 return fopen('php://temp', 'w+b');
 
             case 'a':
@@ -601,6 +624,8 @@ class FlysystemStreamWrapper
             $this->needsFlush = true;
         }
 
+        $this->isWriteOnly = strpos($mode, '+') === false;
+
         return $handle;
     }
 
@@ -614,6 +639,7 @@ class FlysystemStreamWrapper
      */
     protected function getAppendStream($path, $mode)
     {
+        $this->isAppendOnly = true;
         $handle = $this->getWritableStream($path, $mode);
         if ($handle) {
             fseek($handle, 0, SEEK_END);
@@ -639,6 +665,7 @@ class FlysystemStreamWrapper
             return false; // @codeCoverageIgnore
         }
         $this->needsFlush = true;
+        $this->isWriteOnly = strpos($mode, '+') === false;
 
         return fopen('php://temp', 'w+b');
     }
