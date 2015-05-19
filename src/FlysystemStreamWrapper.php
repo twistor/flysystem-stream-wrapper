@@ -213,15 +213,11 @@ class FlysystemStreamWrapper
             return $filesystem->createDir($path);
         }
 
-        $parts = explode('/', $path);
-        array_pop($parts);
-        $dir = '';
-        foreach ($parts as $subpath) {
-            $dir .= $subpath . '/';
-            if (!$filesystem->has($dir)) {
+        if (!$filesystem->has(dirname($path))) {
+            if ($options & STREAM_REPORT_ERRORS) {
                 trigger_error(sprintf('mkdir(%s): No such file or directory', $uri), E_USER_WARNING);
-                return false; // @codeCoverageIgnore
             }
+            return false;
         }
 
         return $filesystem->createDir($path);
@@ -258,8 +254,10 @@ class FlysystemStreamWrapper
     {
         try {
             return $this->getFilesystem()->rename($path_from, $path_to);
+
         } catch (FileNotFoundException $e) {
             trigger_error(sprintf('rename(%s,%s): No such file or directory', $path_from, $path_to), E_USER_WARNING);
+
         } catch (FileExistsException $e) {
             // PHP's rename() will overwrite an existing file. Emulate that.
             if ($this->doUnlink($path_to)) {
@@ -267,7 +265,7 @@ class FlysystemStreamWrapper
             }
         }
 
-        return false;
+        return false; // @codeCoverageIgnore
     }
 
     /**
@@ -276,17 +274,50 @@ class FlysystemStreamWrapper
     public function rmdir($uri, $options)
     {
         $this->uri = $uri;
-        try {
-            return $this->getFilesystem()->deleteDir($this->getTarget());
-        } catch (RootViolationException $e) {
-            trigger_error(sprintf('rmdir(%s): Cannot remove the root directory', $uri), E_USER_WARNING);
+        $path = $this->getTarget();
+
+        if ($options & STREAM_MKDIR_RECURSIVE) {
+            // I don't know how this gets triggered.
+            return $this->doRmdir($path, $options); // @codeCoverageIgnore
         }
+
+        if (empty($this->getFilesystem()->listContents($path))) {
+            return $this->doRmdir($path, $options);
+        }
+
+        if ($options & STREAM_REPORT_ERRORS) {
+            trigger_error(sprintf('rmdir(%s): Directory not empty', $this->uri), E_USER_WARNING);
+        }
+
+        return false;
+    }
+
+    /**
+     * Deletes a directory recursively.
+     *
+     * @param string $path    The path to delete.
+     * @param int    $options Bitwise options.
+     *
+     * @return bool True on success, false on failure.
+     */
+    protected function doRmdir($path, $options)
+    {
+        try {
+            return $this->getFilesystem()->deleteDir($path);
+
+        } catch (RootViolationException $e) {
+            if ($options & STREAM_REPORT_ERRORS) {
+                trigger_error(sprintf('rmdir(%s): Cannot remove the root directory', $this->uri), E_USER_WARNING);
+            }
+        }
+
+        return false; // @codeCoverageIgnore
     }
 
     /**
      * {@inheritdoc}
      */
-    public function stream_cast($cast_as)
+    public function stream_cast()
     {
         return $this->handle;
     }
