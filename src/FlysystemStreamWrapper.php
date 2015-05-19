@@ -6,6 +6,7 @@ use League\Flysystem\FileExistsException;
 use League\Flysystem\FileNotFoundException;
 use League\Flysystem\FilesystemInterface;
 use League\Flysystem\RootViolationException;
+use League\Flysystem\Util;
 
 /**
  * An adapter for Flysystem to a PHP stream wrapper.
@@ -170,7 +171,7 @@ class FlysystemStreamWrapper
     /**
      * {@inheritdoc}
      */
-    public function dir_opendir($uri, $options)
+    public function dir_opendir($uri)
     {
         $this->uri = $uri;
         $this->listing = $this->getFilesystem()->listContents($this->getTarget());
@@ -203,8 +204,27 @@ class FlysystemStreamWrapper
     public function mkdir($uri, $mode, $options)
     {
         $this->uri = $uri;
-        // @todo mode and recursive handling.
-        return $this->getFilesystem()->createDir($this->getTarget());
+
+        $path = Util::normalizePath($this->getTarget());
+        $filesystem = $this->getFilesystem();
+
+        // If recursive, or a single level directory, just create it.
+        if (($options & STREAM_MKDIR_RECURSIVE) || strpos($path, '/') === false) {
+            return $filesystem->createDir($path);
+        }
+
+        $parts = explode('/', $path);
+        array_pop($parts);
+        $dir = '';
+        foreach ($parts as $subpath) {
+            $dir .= $subpath . '/';
+            if (!$filesystem->has($dir)) {
+                trigger_error(sprintf('mkdir(%s): No such file or directory', $uri), E_USER_WARNING);
+                return false; // @codeCoverageIgnore
+            }
+        }
+
+        return $filesystem->createDir($path);
     }
 
     /**
@@ -212,15 +232,16 @@ class FlysystemStreamWrapper
      */
     public function rename($uri_from, $uri_to)
     {
-        // Ignore useless renames.
-        if ($uri_from === $uri_to) {
-            return true;
-        }
-
         $this->uri = $uri_from;
 
-        $path_from = $this->getTarget($uri_from);
-        $path_to = $this->getTarget($uri_to);
+        // Use normalizePath() here so that we can compare them below.
+        $path_from = Util::normalizePath($this->getTarget($uri_from));
+        $path_to = Util::normalizePath($this->getTarget($uri_to));
+
+        // Ignore useless renames.
+        if ($path_from === $path_to) {
+            return true;
+        }
 
         return $this->doRename($path_from, $path_to);
     }

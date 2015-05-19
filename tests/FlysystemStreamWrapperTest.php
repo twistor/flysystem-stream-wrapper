@@ -97,13 +97,21 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
         $this->assertFileContent('test_file3.txt', 'contents');
     }
 
-    public function testRmdir()
+    public function testRmdirMkdir()
     {
-        $bad_dir = $this->testDir . '/bad';
-        mkdir($bad_dir);
+        $this->assertTrue(mkdir('flysystem://one/two', 0777, STREAM_MKDIR_RECURSIVE));
+        $this->assertTrue(mkdir('flysystem://one/two/three', 0777));
 
-        $this->assertTrue(rmdir('flysystem://bad'));
-        $this->assertFalse(is_dir($bad_dir));
+        $this->assertTrue(rmdir('flysystem://one/two/three'));
+        $this->assertFalse(is_dir($this->testDir . '/one/two/three'));
+    }
+
+    /**
+     * @expectedException PHPUnit_Framework_Error_Warning
+     */
+    public function testRmdirMkdirFail()
+    {
+        $this->assertFalse(mkdir('flysystem://one/two', 0777));
     }
 
     public function testTruncateTellAndSeek()
