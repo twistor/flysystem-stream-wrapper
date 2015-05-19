@@ -724,7 +724,7 @@ class FlysystemStreamWrapper
     /**
      * Returns the local writable target of the resource within the stream.
      *
-     * @param string $uri (optional) The URI.
+     * @param string|null $uri The URI.
      *
      * @return string The path appropriate for use with Flysystem.
      */
