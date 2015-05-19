@@ -214,7 +214,7 @@ class FlysystemStreamWrapper
         }
 
         if (!$filesystem->has(dirname($path))) {
-            if (($options & STREAM_REPORT_ERRORS) || defined('HHVM_VERSION')) {
+            if ($this->reportErrors($options)) {
                 trigger_error(sprintf('mkdir(%s): No such file or directory', $uri), E_USER_WARNING);
             }
             return false;
@@ -286,7 +286,7 @@ class FlysystemStreamWrapper
             return $this->doRmdir($path, $options);
         }
 
-        if (($options & STREAM_REPORT_ERRORS) || defined('HHVM_VERSION')) {
+        if ($this->reportErrors($options)) {
             trigger_error(sprintf('rmdir(%s): Directory not empty', $this->uri), E_USER_WARNING);
         }
 
@@ -761,6 +761,18 @@ class FlysystemStreamWrapper
         }
 
         return true;
+    }
+
+    /**
+     * Determines whether errors should be reported.
+     *
+     * @param int $options Options passed to stream functions.
+     *
+     * @return bool True if errors should be reported.
+     */
+    protected function reportErrors($options)
+    {
+        return ($options & STREAM_REPORT_ERRORS) || defined('HHVM_VERSION');
     }
 
     /**
