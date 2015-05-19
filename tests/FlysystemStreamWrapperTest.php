@@ -127,6 +127,13 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
         rmdir('flysystem://one');
     }
 
+    /**
+     * @expectedException PHPUnit_Framework_Error_Warning
+     */
+    public function testRemoveRoot()
+    {
+        rmdir('flysystem://');
+    }
 
     public function testTruncateTellAndSeek()
     {
@@ -282,14 +289,6 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
     {
         $this->putContent('file', '');
         $this->assertWrapperFileExists('file');
-    }
-
-    /**
-     * @expectedException PHPUnit_Framework_Error_Warning
-     */
-    public function testFailedRmdir()
-    {
-        rmdir('flysystem://');
     }
 
     /**

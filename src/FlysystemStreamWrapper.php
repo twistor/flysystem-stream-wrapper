@@ -286,7 +286,7 @@ class FlysystemStreamWrapper
             return $this->doRmdir($path, $options);
         }
 
-        if ($options & STREAM_REPORT_ERRORS) {
+        if (($options & STREAM_REPORT_ERRORS) || defined('HHVM_VERSION')) {
             trigger_error(sprintf('rmdir(%s): Directory not empty', $this->uri), E_USER_WARNING);
         }
 
@@ -307,7 +307,7 @@ class FlysystemStreamWrapper
             return $this->getFilesystem()->deleteDir($path);
 
         } catch (RootViolationException $e) {
-            if ($options & STREAM_REPORT_ERRORS) {
+            if (($options & STREAM_REPORT_ERRORS) || defined('HHVM_VERSION')) {
                 trigger_error(sprintf('rmdir(%s): Cannot remove the root directory', $this->uri), E_USER_WARNING);
             }
         }
