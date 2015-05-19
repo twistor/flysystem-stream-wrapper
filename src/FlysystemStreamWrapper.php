@@ -602,7 +602,7 @@ class FlysystemStreamWrapper
             return $handle;
         }
 
-        $this->isCow = true;
+        $this->isCow = !$this->handleIsWritable($handle);
         return $handle;
     }
 
@@ -618,7 +618,7 @@ class FlysystemStreamWrapper
     {
         try {
             $handle = $this->getFilesystem()->readStream($path);
-            $this->isCow = true;
+            $this->isCow = !$this->handleIsWritable($handle);
         } catch (FileNotFoundException $e) {
             $handle = fopen('php://temp', 'w+b');
             $this->needsFlush = true;
@@ -689,6 +689,30 @@ class FlysystemStreamWrapper
         fseek($out, $pos);
 
         return $out;
+    }
+
+    /**
+     * Determines if a file handle is writable.
+     *
+     * Most adapters return the read stream as a tempfile or a php temp stream.
+     * For performance, avoid copying the temp stream if it is writable.
+     *
+     * @param resource $handle A file handle.
+     *
+     * @return bool True if writable, false if not.
+     */
+    protected function handleIsWritable($handle) {
+        if (!$handle) {
+            return false; // @codeCoverageIgnore
+        }
+
+        $mode = stream_get_meta_data($handle)['mode'];
+
+        if ($mode[0] === 'r') {
+            return strpos($mode, '+') === 1;
+        }
+
+        return true;
     }
 
     /**

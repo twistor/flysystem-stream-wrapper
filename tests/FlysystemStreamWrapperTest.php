@@ -27,6 +27,7 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
 
     public function tearDown()
     {
+        FlysystemStreamWrapper::unregister('flysystem');
         $filesystem = new Filesystem(new Local(__DIR__));
         $filesystem->deleteDir('testdir');
     }
