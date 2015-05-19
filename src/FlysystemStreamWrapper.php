@@ -265,7 +265,7 @@ class FlysystemStreamWrapper
             }
         }
 
-        return false; // @codeCoverageIgnore
+        return false;
     }
 
     /**
@@ -446,19 +446,18 @@ class FlysystemStreamWrapper
      */
     public function stream_set_option($option, $arg1, $arg2)
     {
-        switch ($option) {
-            case STREAM_OPTION_BLOCKING:
-                return stream_set_blocking($this->handle, $arg1);
-
-            case STREAM_OPTION_READ_TIMEOUT:
-                // Not supported yet. There might be a way to use this to pass a
-                // timeout to the underlying adapter.
-                return false;
-
-            case STREAM_OPTION_WRITE_BUFFER:
-                // Not supported. In the future, this could be supported.
-                return false;
+        if ($option === STREAM_OPTION_BLOCKING) {
+            return stream_set_blocking($this->handle, $arg1);
         }
+
+        // STREAM_OPTION_READ_TIMEOUT:
+        // Not supported yet. There might be a way to use this to pass a timeout
+        // to the underlying adapter.
+
+        // STREAM_OPTION_WRITE_BUFFER:
+        // Not supported. In the future, this could be supported.
+
+        return false;
     }
 
     /**
@@ -562,7 +561,7 @@ class FlysystemStreamWrapper
         // It's possible for getMetadata() to fail even if a file exists.
         // @todo Figure out the correct way to handle this.
         if ($metadata === false) {
-            return static::$defaultMeta;
+            return static::$defaultMeta; // @codeCoverageIgnore
         }
 
         return $this->mergeMeta($metadata);
@@ -641,7 +640,7 @@ class FlysystemStreamWrapper
             $handle = $this->getFilesystem()->readStream($path);
         } catch (FileNotFoundException $e) {
             trigger_error(sprintf('fopen(%s): failed to open stream: No such file or directory', $this->uri), E_USER_WARNING);
-            return false; // @codeCoverageIgnore
+            return false;
         }
 
         if (strpos($mode, '+') === false) {
@@ -709,7 +708,7 @@ class FlysystemStreamWrapper
         if ($this->getFilesystem()->has($path)) {
             trigger_error(sprintf('fopen(%s): failed to open stream: File exists', $this->uri), E_USER_WARNING);
 
-            return false; // @codeCoverageIgnore
+            return false;
         }
 
         $this->needsFlush = true;

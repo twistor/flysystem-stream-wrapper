@@ -276,8 +276,10 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
         fclose($handle);
         $this->assertFileContent('new_file.txt', '12345');
 
+        // Returns false.
+        $this->assertFalse(@fopen('flysystem://new_file.txt', 'x+'));
         // Throws warning.
-        $handle = fopen('flysystem://new_file.txt', 'x+');
+        fopen('flysystem://new_file.txt', 'x+');
     }
 
     /**
@@ -299,6 +301,7 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
      */
     public function testFailedUnlink()
     {
+        $this->assertFalse(@unlink('flysystem://asdfasdfasf'));
         unlink('flysystem://asdfasdfasf');
     }
 
@@ -307,6 +310,7 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
      */
     public function testBadRename()
     {
+        $this->assertFalse(@rename('flysystem://test_file1.txt', 'flysystem://test_file3.txt'));
         rename('flysystem://test_file1.txt', 'flysystem://test_file3.txt');
     }
 
@@ -315,6 +319,7 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
      */
     public function testReadMissing()
     {
+        $this->assertFalse(@fopen('flysystem://doesnotexist', 'rbt'));
         fopen('flysystem://doesnotexist', 'rbt');
     }
 
