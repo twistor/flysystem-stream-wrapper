@@ -99,13 +99,11 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
 
     public function testRmdir()
     {
-        mkdir($this->testDir . '/bad');
+        $bad_dir = $this->testDir . '/bad';
+        mkdir($bad_dir);
 
-        chmod($this->testDir . '/bad', 0000);
-        $this->assertFalse(rmdir('flysystem://bad'));
-
-        chmod($this->testDir . '/bad', 0755);
         $this->assertTrue(rmdir('flysystem://bad'));
+        $this->assertFalse(is_dir($bad_dir));
     }
 
     public function testTruncateTellAndSeek()

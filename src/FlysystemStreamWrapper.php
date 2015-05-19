@@ -259,11 +259,7 @@ class FlysystemStreamWrapper
             return $this->getFilesystem()->deleteDir($this->getTarget());
         } catch (RootViolationException $e) {
             trigger_error(sprintf('rmdir(%s): Cannot remove the root directory', $uri), E_USER_WARNING);
-        } catch (\UnexpectedValueException $e) {
-            // Thrown by a directory interator when the perms fail.
         }
-
-        return false;
     }
 
     /**
@@ -492,8 +488,6 @@ class FlysystemStreamWrapper
             return $this->getFilesystem()->delete($path);
         } catch (FileNotFoundException $e) {
             trigger_error(sprintf('unlink(%s): No such file or directory', $path), E_USER_WARNING);
-        } catch (\UnexpectedValueException $e) {
-            // Thrown when trying to iterate directories that are unreadable.
         }
 
         return false;
@@ -640,10 +634,10 @@ class FlysystemStreamWrapper
     protected function getAppendStream($path, $mode)
     {
         $this->isAppendOnly = true;
-        $handle = $this->getWritableStream($path, $mode);
-        if ($handle) {
+        if ($handle = $this->getWritableStream($path, $mode)) {
             fseek($handle, 0, SEEK_END);
         }
+
         return $handle;
     }
 
@@ -664,6 +658,7 @@ class FlysystemStreamWrapper
 
             return false; // @codeCoverageIgnore
         }
+
         $this->needsFlush = true;
         $this->isWriteOnly = strpos($mode, '+') === false;
 
@@ -701,7 +696,8 @@ class FlysystemStreamWrapper
      *
      * @return bool True if writable, false if not.
      */
-    protected function handleIsWritable($handle) {
+    protected function handleIsWritable($handle)
+    {
         if (!$handle) {
             return false; // @codeCoverageIgnore
         }
