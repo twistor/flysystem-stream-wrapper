@@ -533,7 +533,7 @@ class FlysystemStreamWrapper
         $ret = static::$defaultMeta;
 
         // Dirs are 0777. Files are 0666.
-        $ret['mode'] = $metadata['type'] === 'dir' ? 16895 : 33204;
+        $ret['mode'] = $metadata['type'] === 'dir' ? 040777 : 0100664;
 
         if (isset($metadata['size'])) {
             $ret['size'] = $metadata['size'];

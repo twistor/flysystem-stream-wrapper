@@ -206,7 +206,15 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
     {
         $this->putContent('test_file.txt', 'some file content');
         $handle = fopen('flysystem://test_file.txt', 'a');
-        $this->assertSame(17, ftell($handle));
+
+        // ftell() and fseek() are undefined for append files. HHVM enforces
+        // this.
+        if (defined('HHVM_VERSION')) {
+            $this->assertSame(0, ftell($handle));
+        } else {
+            $this->assertSame(17, ftell($handle));
+        }
+
         $this->assertSame(0, fseek($handle, 0));
 
         // Test write-only.
