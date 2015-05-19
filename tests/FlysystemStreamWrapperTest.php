@@ -132,6 +132,9 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
      */
     public function testRemoveRoot()
     {
+        // Test without STREAM_REPORT_ERRORS.
+        $this->assertFalse(@rmdir('flysystem://'));
+
         rmdir('flysystem://');
     }
 

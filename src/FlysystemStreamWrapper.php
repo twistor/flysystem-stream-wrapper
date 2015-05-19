@@ -214,7 +214,7 @@ class FlysystemStreamWrapper
         }
 
         if (!$filesystem->has(dirname($path))) {
-            if ($options & STREAM_REPORT_ERRORS) {
+            if (($options & STREAM_REPORT_ERRORS) || defined('HHVM_VERSION')) {
                 trigger_error(sprintf('mkdir(%s): No such file or directory', $uri), E_USER_WARNING);
             }
             return false;
@@ -312,7 +312,7 @@ class FlysystemStreamWrapper
             }
         }
 
-        return false; // @codeCoverageIgnore
+        return false;
     }
 
     /**
