@@ -12,10 +12,6 @@ use League\Flysystem\RootViolationException;
  */
 class FlysystemStreamWrapper
 {
-    const FSEEK_START = 0;
-
-    const FSEEK_END = -1;
-
     /**
      * Default return value of url_stat().
      *
@@ -57,6 +53,13 @@ class FlysystemStreamWrapper
      * @var resource
      */
     protected $handle;
+
+    /**
+     * Whether this handle is copy-on-write.
+     *
+     * @var bool
+     */
+    protected $isCow = false;
 
     /**
      * Whether the handle is read-only.
@@ -415,8 +418,12 @@ class FlysystemStreamWrapper
         if ($this->isReadOnly) {
             return false;
         }
-
         $this->needsFlush = true;
+
+        if ($this->isCow) {
+            $this->isCow = false;
+            $this->handle = $this->cloneStream($this->handle);
+        }
 
         return ftruncate($this->handle, $new_size);
     }
@@ -429,8 +436,12 @@ class FlysystemStreamWrapper
         if ($this->isReadOnly) {
             return 0;
         }
-
         $this->needsFlush = true;
+
+        if ($this->isCow) {
+            $this->isCow = false;
+            $this->handle = $this->cloneStream($this->handle);
+        }
 
         return fwrite($this->handle, $data);
     }
@@ -531,16 +542,16 @@ class FlysystemStreamWrapper
             case 'w':
                 $this->needsFlush = true;
 
-                return fopen('php://temp', $mode);
+                return fopen('php://temp', 'w+b');
 
             case 'a':
-                return $this->getWritableStream($path, $mode, static::FSEEK_END);
+                return $this->getAppendStream($path, $mode);
 
             case 'x':
                 return $this->getXStream($path, $mode);
 
             case 'c':
-                return $this->getWritableStream($path, $mode, static::FSEEK_START);
+                return $this->getWritableStream($path, $mode);
         }
 
         return false;
@@ -560,21 +571,16 @@ class FlysystemStreamWrapper
             $handle = $this->getFilesystem()->readStream($path);
         } catch (FileNotFoundException $e) {
             trigger_error(sprintf('fopen(%s): failed to open stream: No such file or directory', $this->uri), E_USER_WARNING);
-
             return false; // @codeCoverageIgnore
         }
 
-        if (!$handle) {
-            return false;
-        }
-        // Just pass the handle through if read-only mode.
         if (strpos($mode, '+') === false) {
             $this->isReadOnly = true;
-
             return $handle;
         }
 
-        return $this->cloneStream($handle, $mode, static::FSEEK_START);
+        $this->isCow = true;
+        return $handle;
     }
 
     /**
@@ -582,20 +588,37 @@ class FlysystemStreamWrapper
      *
      * @param string $path The path to open.
      * @param string $mode The mode to open the stream in.
-     * @param int    $seek The position to seek to after the copy.
      *
      * @return resource|bool The file handle, or false.
      */
-    protected function getWritableStream($path, $mode, $seek)
+    protected function getWritableStream($path, $mode)
     {
-        if ($handle = $this->getStreamWithoutError($path)) {
-            $handle = $this->cloneStream($handle, $mode, $seek);
-
-            return $handle;
+        try {
+            $handle = $this->getFilesystem()->readStream($path);
+            $this->isCow = true;
+        } catch (FileNotFoundException $e) {
+            $handle = fopen('php://temp', 'w+b');
+            $this->needsFlush = true;
         }
-        $this->needsFlush = true;
 
-        return fopen('php://temp', $mode);
+        return $handle;
+    }
+
+    /**
+     * Returns an appendable stream for a given path and mode.
+     *
+     * @param string $path The path to open.
+     * @param string $mode The mode to open the stream in.
+     *
+     * @return resource|bool The file handle, or false.
+     */
+    protected function getAppendStream($path, $mode)
+    {
+        $handle = $this->getWritableStream($path, $mode);
+        if ($handle) {
+            fseek($handle, 0, SEEK_END);
+        }
+        return $handle;
     }
 
     /**
@@ -617,46 +640,26 @@ class FlysystemStreamWrapper
         }
         $this->needsFlush = true;
 
-        return fopen('php://temp', $mode);
-    }
-
-    /**
-     * Returns a stream from a path supressing exceptions.
-     *
-     * @param string $path The path to open.
-     *
-     * @return resource|bool The file handle, or false.
-     */
-    protected function getStreamWithoutError($path)
-    {
-        try {
-            return $this->getFilesystem()->readStream($path);
-        } catch (FileNotFoundException $e) {
-            return false;
-        }
+        return fopen('php://temp', 'w+b');
     }
 
     /**
      * Clones a stream.
      *
      * @param resource $handle The file handle to clone.
-     * @param string   $mode   The mode to create the new file handle with.
-     * @param int      $seek   Where to seek to after the copy.
      *
-     * @return resource|bool The file handle, or false.
+     * @return resource The cloned file handle.
      */
-    protected function cloneStream($handle, $mode, $seek)
+    protected function cloneStream($handle)
     {
-        $out = fopen('php://temp', $mode);
+        $out = fopen('php://temp', 'w+b');
+        $pos = ftell($handle);
 
+        fseek($handle, 0);
         stream_copy_to_stream($handle, $out);
         fclose($handle);
 
-        if ($seek === static::FSEEK_END) {
-            fseek($out, 0, SEEK_END);
-        } else {
-            fseek($out, $seek);
-        }
+        fseek($out, $pos);
 
         return $out;
     }

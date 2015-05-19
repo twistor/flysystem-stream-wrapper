@@ -183,6 +183,22 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
         $this->assertSame(0, fwrite($handle, 'more content'));
         $this->assertFalse(ftruncate($handle, 0));
         fclose($handle);
+
+        // Test COW.
+        $handle = fopen('flysystem://test_file.txt', 'r+');
+        $this->assertSame(0, fseek($handle, 0, SEEK_END));
+        $this->assertSame(13, fwrite($handle, ' more content'));
+        $this->assertTrue(fflush($handle));
+
+        $this->assertFileContent('test_file.txt', 'some file content more content');
+        fclose($handle);
+
+        $handle = fopen('flysystem://test_file.txt', 'r+');
+        $this->assertTrue(ftruncate($handle, 4));
+        $this->assertTrue(fflush($handle));
+
+        $this->assertFileContent('test_file.txt', 'some');
+        fclose($handle);
     }
 
     public function testAppendMode()
