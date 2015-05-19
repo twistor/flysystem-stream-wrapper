@@ -307,7 +307,7 @@ class FlysystemStreamWrapper
             return $this->getFilesystem()->deleteDir($path);
 
         } catch (RootViolationException $e) {
-            if (($options & STREAM_REPORT_ERRORS) || defined('HHVM_VERSION')) {
+            if ($this->reportErrors($options)) {
                 trigger_error(sprintf('rmdir(%s): Cannot remove the root directory', $this->uri), E_USER_WARNING);
             }
         }
