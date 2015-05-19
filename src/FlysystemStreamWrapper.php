@@ -171,7 +171,7 @@ class FlysystemStreamWrapper
     /**
      * {@inheritdoc}
      */
-    public function dir_opendir($uri)
+    public function dir_opendir($uri, $options)
     {
         $this->uri = $uri;
         $this->listing = $this->getFilesystem()->listContents($this->getTarget());
@@ -318,7 +318,7 @@ class FlysystemStreamWrapper
     /**
      * {@inheritdoc}
      */
-    public function stream_cast()
+    public function stream_cast($cast_as)
     {
         return $this->handle;
     }
