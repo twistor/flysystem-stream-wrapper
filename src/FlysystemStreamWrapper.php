@@ -50,7 +50,7 @@ class FlysystemStreamWrapper
     /**
      * A generic resource handle.
      *
-     * @var resource
+     * @var resource|bool
      */
     protected $handle;
 
@@ -692,7 +692,7 @@ class FlysystemStreamWrapper
      * Most adapters return the read stream as a tempfile or a php temp stream.
      * For performance, avoid copying the temp stream if it is writable.
      *
-     * @param resource $handle A file handle.
+     * @param resource|bool $handle A file handle.
      *
      * @return bool True if writable, false if not.
      */
