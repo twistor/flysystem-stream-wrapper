@@ -281,7 +281,8 @@ class FlysystemStreamWrapper
             return $this->doRmdir($path, $options); // @codeCoverageIgnore
         }
 
-        if (empty($this->getFilesystem()->listContents($path))) {
+        $contents = $this->getFilesystem()->listContents($path);
+        if (empty($contents)) {
             return $this->doRmdir($path, $options);
         }
 
