@@ -386,6 +386,18 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
         fopen('flysystem://doesnotexist', 'rbt');
     }
 
+    /**
+     * @expectedException \Exception
+     */
+    public function testTriggerError()
+    {
+        $wrapper = new FlysystemStreamWrapper();
+
+        $method = new \ReflectionMethod($wrapper, 'triggerError');
+        $method->setAccessible(TRUE);
+        $method->invokeArgs($wrapper, ['function', [], new \Exception()]);
+    }
+
     protected function assertFileContent($path, $content)
     {
         $this->assertSame($content, file_get_contents("flysystem://$path"));

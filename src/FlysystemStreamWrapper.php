@@ -788,15 +788,14 @@ class FlysystemStreamWrapper
         switch (get_class($e)) {
             case 'League\Flysystem\FileNotFoundException':
                 trigger_error(vsprintf('%s(%s): No such file or directory', $vars), E_USER_WARNING);
-                break;
+                return;
 
             case 'League\Flysystem\RootViolationException':
                 trigger_error(vsprintf('%s(%s): Cannot remove the root directory', $vars), E_USER_WARNING);
-                break;
-
-            // Throw any unhandled exceptions.
-            default:      // @codeCoverageIgnore
-                throw $e; // @codeCoverageIgnore
+                return;
         }
+
+        // Throw any unhandled exceptions.
+        throw $e;
     }
 }
