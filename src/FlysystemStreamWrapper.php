@@ -715,7 +715,7 @@ class FlysystemStreamWrapper
     protected function handleIsWritable($handle)
     {
         if (!$handle) {
-            return false; // @codeCoverageIgnore
+            return false;
         }
 
         $mode = stream_get_meta_data($handle)['mode'];

@@ -14,7 +14,7 @@
         "league/flysystem": "~1.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "~4.1"
+        "phpunit/phpunit": "~4.6"
     },
     "autoload": {
         "psr-4": {

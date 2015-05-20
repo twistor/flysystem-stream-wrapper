@@ -35,7 +35,7 @@ class Rmdir extends AbstractPlugin
 
         if ($options & STREAM_MKDIR_RECURSIVE) {
             // I don't know how this gets triggered.
-            return (bool) $adapter->deleteDir($dirname); // @codeCoverageIgnore
+            return (bool) $adapter->deleteDir($dirname);
         }
 
         $contents = $this->filesystem->listContents($dirname);

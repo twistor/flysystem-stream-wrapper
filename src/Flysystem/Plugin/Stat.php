@@ -50,7 +50,7 @@ class Stat extends AbstractPlugin
         // It's possible for getMetadata() to fail even if a file exists.
         // @todo Figure out the correct way to handle this.
         if ($metadata === false) {
-            return static::$defaultMeta; // @codeCoverageIgnore
+            return static::$defaultMeta;
         }
 
         return $this->mergeMeta($metadata);

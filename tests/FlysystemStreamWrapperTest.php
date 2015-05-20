@@ -398,6 +398,15 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
         $method->invokeArgs($wrapper, ['function', [], new \Exception()]);
     }
 
+    public function testHandleIsWritable()
+    {
+        $wrapper = new FlysystemStreamWrapper();
+
+        $method = new \ReflectionMethod($wrapper, 'handleIsWritable');
+        $method->setAccessible(TRUE);
+        $this->assertFalse($method->invokeArgs($wrapper, [false]));
+    }
+
     protected function assertFileContent($path, $content)
     {
         $this->assertSame($content, file_get_contents("flysystem://$path"));

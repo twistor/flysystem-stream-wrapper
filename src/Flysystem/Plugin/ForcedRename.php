@@ -44,7 +44,7 @@ class ForcedRename extends AbstractPlugin
 
         if (!$this->isValidRename($path, $newpath)) {
             // Returns false if a Flysystem call fails.
-            return false; // @codeCoverageIgnore
+            return false;
         }
 
         return (bool) $this->filesystem->getAdapter()->rename($path, $newpath);
@@ -66,7 +66,9 @@ class ForcedRename extends AbstractPlugin
             throw new FileNotFoundException($source);
         }
 
-        if (!$adapter->has(dirname($dest))) {
+        $subdir = dirname($dest);
+
+        if ($subdir !== '.' && !$adapter->has($subdir)) {
             throw new FileNotFoundException($source);
         }
 
