@@ -2,12 +2,8 @@
 
 namespace Twistor;
 
-use League\Flysystem\FileExistsException;
 use League\Flysystem\FileNotFoundException;
 use League\Flysystem\FilesystemInterface;
-use League\Flysystem\RootViolationException;
-use Twistor\Flysystem\Exception\DirectoryExistsException;
-use Twistor\Flysystem\Exception\DirectoryNotEmptyException;
 use Twistor\Flysystem\Plugin\ForcedRename;
 use Twistor\Flysystem\Plugin\Mkdir;
 use Twistor\Flysystem\Plugin\Rmdir;
@@ -227,8 +223,8 @@ class FlysystemStreamWrapper
         try {
             return $this->getFilesystem()->mkdir($this->getTarget(), $mode, $options);
 
-        } catch (FileNotFoundException $e) {
-            trigger_error(sprintf('mkdir(%s): No such file or directory', $uri), E_USER_WARNING);
+        } catch (\Exception $e) {
+            $this->triggerError('mkdir', [$uri], $e);
         }
 
         return false;
@@ -249,17 +245,8 @@ class FlysystemStreamWrapper
         try {
             return $this->getFilesystem()->forcedRename($this->getTarget($uri_from), $this->getTarget($uri_to));
 
-        } catch (FileNotFoundException $e) {
-            trigger_error(sprintf('rename(%s,%s): No such file or directory', $uri_from, $uri_to), E_USER_WARNING);
-
-        } catch (FileExistsException $e) {
-            trigger_error(sprintf('rename(%s,%s): Not a directory', $uri_from, $uri_to), E_USER_WARNING);
-
-        } catch (DirectoryExistsException $e) {
-            trigger_error(sprintf('rename(%s,%s): Is a directory', $uri_from, $uri_to), E_USER_WARNING);
-
-        } catch (DirectoryNotEmptyException $e) {
-            trigger_error(sprintf('rename(%s,%s): Directory not empty', $uri_from, $uri_to), E_USER_WARNING);
+        } catch (\Exception $e) {
+            $this->triggerError('rename', [$uri_from, $uri_to], $e);
         }
 
         return false;
@@ -280,11 +267,8 @@ class FlysystemStreamWrapper
         try {
             return $this->getFilesystem()->rmdir($this->getTarget(), $options);
 
-        } catch (RootViolationException $e) {
-            trigger_error(sprintf('rmdir(%s): Cannot remove the root directory', $this->uri), E_USER_WARNING);
-
-        } catch (FileExistsException $e) {
-            trigger_error(sprintf('rmdir(%s): Directory not empty', $this->uri), E_USER_WARNING);
+        } catch (\Exception $e) {
+            $this->triggerError('rmdir', [$uri], $e);
         }
 
         return false;
@@ -543,8 +527,8 @@ class FlysystemStreamWrapper
 
         try {
             return $this->getFilesystem()->delete($this->getTarget());
-        } catch (FileNotFoundException $e) {
-            trigger_error(sprintf('unlink(%s): No such file or directory', $uri), E_USER_WARNING);
+        } catch (\Exception $e) {
+            $this->triggerError('unlink', [$uri], $e);
         }
 
         return false;
@@ -782,5 +766,43 @@ class FlysystemStreamWrapper
         $this->filesystem = static::$filesystems[$this->getProtocol()];
 
         return $this->filesystem;
+    }
+
+    /**
+     * Calls trigger_error() printing the appropriate message.
+     *
+     * @param string $function
+     * @param array $args
+     * @param \Exception $e
+     */
+    protected function triggerError($function, array $args, \Exception $e)
+    {
+        $vars = [$function, implode(',', $args)];
+
+        switch (get_class($e)) {
+            case 'League\Flysystem\FileNotFoundException':
+                trigger_error(vsprintf('%s(%s): No such file or directory', $vars), E_USER_WARNING);
+                break;
+
+            case 'Twistor\Flysystem\Exception\NotADirectoryException':
+                trigger_error(vsprintf('%s(%s): Not a directory', $vars), E_USER_WARNING);
+                break;
+
+            case 'Twistor\Flysystem\Exception\DirectoryExistsException':
+                trigger_error(vsprintf('%s(%s): Is a directory', $vars), E_USER_WARNING);
+                break;
+
+            case 'Twistor\Flysystem\Exception\DirectoryNotEmptyException':
+                trigger_error(vsprintf('%s(%s): Directory not empty', $vars), E_USER_WARNING);
+                break;
+
+            case 'League\Flysystem\RootViolationException':
+                trigger_error(vsprintf('%s(%s): Cannot remove the root directory', $vars), E_USER_WARNING);
+                break;
+
+            // Throw any unhandled exceptions.
+            default:      // @codeCoverageIgnore
+                throw $e; // @codeCoverageIgnore
+        }
     }
 }

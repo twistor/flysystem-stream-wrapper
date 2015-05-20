@@ -2,9 +2,9 @@
 
 namespace Twistor\Flysystem\Plugin;
 
-use League\Flysystem\FileExistsException;
 use League\Flysystem\RootViolationException;
 use League\Flysystem\Util;
+use Twistor\Flysystem\Exception\DirectoryNotEmptyException;
 
 class Rmdir extends AbstractPlugin
 {
@@ -41,7 +41,7 @@ class Rmdir extends AbstractPlugin
         $contents = $this->filesystem->listContents($dirname);
 
         if (!empty($contents)) {
-            throw new FileExistsException($dirname);
+            throw new DirectoryNotEmptyException();
         }
 
         return (bool) $adapter->deleteDir($dirname);

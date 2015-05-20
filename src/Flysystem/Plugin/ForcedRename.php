@@ -7,6 +7,7 @@ use League\Flysystem\FileNotFoundException;
 use League\Flysystem\Util;
 use Twistor\Flysystem\Exception\DirectoryExistsException;
 use Twistor\Flysystem\Exception\DirectoryNotEmptyException;
+use Twistor\Flysystem\Exception\NotADirectoryException;
 
 class ForcedRename extends AbstractPlugin
 {
@@ -100,7 +101,7 @@ class ForcedRename extends AbstractPlugin
                 throw new DirectoryExistsException();
             }
 
-            throw new FileExistsException($dest);
+            throw new NotADirectoryException($dest);
         }
 
         // Allow overwriting destination file.

@@ -106,6 +106,7 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException PHPUnit_Framework_Error_Warning
+     * @expectedExceptionMessage rename(flysystem://file,flysystem://dir): Is a directory
      */
     public function testRenameFileToDir()
     {
@@ -118,6 +119,7 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException PHPUnit_Framework_Error_Warning
+     * @expectedExceptionMessage rename(flysystem://dir,flysystem://file): Not a directory
      */
     public function testRenameDirToFile()
     {
@@ -130,6 +132,7 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException PHPUnit_Framework_Error_Warning
+     * @expectedExceptionMessage rename(flysystem://dir1,flysystem://dir2): Directory not empty
      */
     public function testRenameDirNotEmpty()
     {
@@ -141,6 +144,7 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException PHPUnit_Framework_Error_Warning
+     * @expectedExceptionMessage rename(flysystem://file,flysystem://dir/file): No such file or directory
      */
     public function testRenameNoSubDir()
     {
@@ -164,6 +168,7 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException PHPUnit_Framework_Error_Warning
+     * @expectedExceptionMessage mkdir(flysystem://one/two): No such file or directory
      */
     public function testMkdirFail()
     {
@@ -172,6 +177,7 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException PHPUnit_Framework_Error_Warning
+     * @expectedExceptionMessage rmdir(flysystem://one): Directory not empty
      */
     public function testRmdirFail()
     {
@@ -181,6 +187,7 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException PHPUnit_Framework_Error_Warning
+     * @expectedExceptionMessage rmdir(flysystem://): Cannot remove the root directory
      */
     public function testRemoveRoot()
     {
@@ -320,6 +327,7 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException PHPUnit_Framework_Error_Warning
+     * @expectedExceptionMessage fopen(flysystem://new_file.txt): failed to open stream: File exists
      */
     public function testXMode()
     {
@@ -350,6 +358,7 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException PHPUnit_Framework_Error_Warning
+     * @expectedExceptionMessage unlink(flysystem://asdfasdfasf): No such file or directory
      */
     public function testFailedUnlink()
     {
@@ -359,6 +368,7 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException PHPUnit_Framework_Error_Warning
+     * @expectedExceptionMessage rename(flysystem://test_file1.txt,flysystem://test_file3.txt): No such file or directory
      */
     public function testBadRename()
     {
@@ -368,6 +378,7 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException PHPUnit_Framework_Error_Warning
+     * @expectedExceptionMessage fopen(flysystem://doesnotexist): failed to open stream: No such file or directory
      */
     public function testReadMissing()
     {
