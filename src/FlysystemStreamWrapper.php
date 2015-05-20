@@ -353,7 +353,6 @@ class FlysystemStreamWrapper
         switch ($option) {
             case STREAM_META_ACCESS:
                 // Emulate chmod() since lots of things depend on it.
-                // @todo We could do better with the emulation.
                 return true;
 
             case STREAM_META_TOUCH:
@@ -433,13 +432,6 @@ class FlysystemStreamWrapper
         if ($option === STREAM_OPTION_BLOCKING) {
             return stream_set_blocking($this->handle, $arg1);
         }
-
-        // STREAM_OPTION_READ_TIMEOUT:
-        // Not supported yet. There might be a way to use this to pass a timeout
-        // to the underlying adapter.
-
-        // STREAM_OPTION_WRITE_BUFFER:
-        // Not supported. In the future, this could be supported.
 
         return false;
     }

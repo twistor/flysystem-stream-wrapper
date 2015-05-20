@@ -2,7 +2,6 @@
 
 namespace Twistor\Flysystem\Plugin;
 
-use League\Flysystem\FileExistsException;
 use League\Flysystem\FileNotFoundException;
 use League\Flysystem\Util;
 use Twistor\Flysystem\Exception\DirectoryExistsException;
@@ -26,9 +25,9 @@ class ForcedRename extends AbstractPlugin
      * @param string $newpath new path
      *
      * @throws \League\Flysystem\FileNotFoundException
-     * @throws \League\Flysystem\FileExistsException
      * @throws \Twistor\Flysystem\Exception\DirectoryExistsException
      * @throws \Twistor\Flysystem\Exception\DirectoryNotEmptyException
+     * @throws \Twistor\Flysystem\Exception\NotADirectoryException
      *
      * @return bool
      */
