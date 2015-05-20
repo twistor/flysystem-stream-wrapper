@@ -41,12 +41,23 @@ class ForcedRename extends AbstractPlugin
             return true;
         }
 
-        $this->assertValidRename($path, $newpath);
+        if (!$this->isValidRename($path, $newpath)) {
+            // Returns false if a Flysystem call fails.
+            return false; // @codeCoverageIgnore
+        }
 
         return (bool) $this->filesystem->getAdapter()->rename($path, $newpath);
     }
 
-    protected function assertValidRename($source, $dest)
+    /**
+     * Checks that a rename is valid.
+     *
+     * @param string $source
+     * @param sting $dest
+     *
+     * @return bool
+     */
+    protected function isValidRename($source, $dest)
     {
         $adapter = $this->filesystem->getAdapter();
 
@@ -54,38 +65,55 @@ class ForcedRename extends AbstractPlugin
             throw new FileNotFoundException($source);
         }
 
-        if (!$adapter->has($dest)) {
-            if (!$adapter->has(dirname($dest))) {
-                throw new FileNotFoundException($source);
-            }
-            return;
+        if (!$adapter->has(dirname($dest))) {
+            throw new FileNotFoundException($source);
         }
 
-        $this->checkMetadata($source, $dest);
+        if (!$adapter->has($dest)) {
+            return true;
+        }
+
+        return $this->compareMetadata($source, $dest);
     }
 
-    protected function checkMetadata($source, $dest)
+    /**
+     * Compares the metadata for the source and dest.
+     *
+     * @param string $source
+     * @param string $dest
+     *
+     * @return bool
+     */
+    protected function compareMetadata($source, $dest)
     {
         $adapter = $this->filesystem->getAdapter();
 
-        $source_meta = $adapter->getMetadata($source);
-        $dest_meta = $adapter->getMetadata($dest);
+        $source_type = $adapter->getMetadata($source)['type'];
+        $dest_type = $adapter->getMetadata($dest)['type'];
 
-        if ($dest_meta['type'] === 'dir') {
-            $contents = $this->filesystem->listContents($dest);
-            if (!empty($contents)) {
-                throw new DirectoryNotEmptyException();
+        // These three checks are done in order of cost to minimize Flysystem
+        // calls.
+
+        // Don't allow overwriting different types.
+        if ($source_type !== $dest_type) {
+            if ($dest_type === 'dir') {
+                throw new DirectoryExistsException();
             }
+
+            throw new FileExistsException($dest);
         }
 
-        if ($source_meta['type'] === $dest_meta['type']) {
-            return;
+        // Allow overwriting destination file.
+        if ($source_type === 'file') {
+            return $adapter->delete($dest);
         }
 
-        if ($dest_meta['type'] === 'dir') {
-            throw new DirectoryExistsException();
+        // Allow overwriting destination directory if not empty.
+        $contents = $this->filesystem->listContents($dest);
+        if (!empty($contents)) {
+            throw new DirectoryNotEmptyException();
         }
 
-        throw new FileExistsException($dest);
+        return $adapter->deleteDir($dest);
     }
 }
