@@ -7,33 +7,17 @@ use League\Flysystem\FileNotFoundException;
 use League\Flysystem\FilesystemInterface;
 use League\Flysystem\RootViolationException;
 use League\Flysystem\Util;
+use Twistor\Flysystem\Plugin\ForcedRename;
+use Twistor\Flysystem\Plugin\Mkdir;
+use Twistor\Flysystem\Plugin\Rmdir;
+use Twistor\Flysystem\Plugin\Stat;
+use Twistor\Flysystem\Plugin\Touch;
 
 /**
  * An adapter for Flysystem to a PHP stream wrapper.
  */
 class FlysystemStreamWrapper
 {
-    /**
-     * Default return value of url_stat().
-     *
-     * @var array
-     */
-    protected static $defaultMeta = [
-        'dev' => 0,
-        'ino' => 0,
-        'mode' => 0,
-        'nlink' => 0,
-        'uid' => 0,
-        'gid' => 0,
-        'rdev' => 0,
-        'size' => 0,
-        'atime' => 0,
-        'mtime' => 0,
-        'ctime' => 0,
-        'blksize' => -1,
-        'blocks' => -1,
-    ];
-
     /**
      * The registered filesystems.
      *
@@ -123,6 +107,7 @@ class FlysystemStreamWrapper
             return false;
         }
 
+        static::registerPlugins($filesystem);
         static::$filesystems[$protocol] = $filesystem;
 
         return stream_wrapper_register($protocol, __CLASS__);
@@ -156,6 +141,15 @@ class FlysystemStreamWrapper
     protected static function streamWrapperExists($protocol)
     {
         return in_array($protocol, stream_get_wrappers(), true);
+    }
+
+    protected static function registerPlugins(FilesystemInterface $filesystem)
+    {
+        $filesystem->addPlugin(new ForcedRename());
+        $filesystem->addPlugin(new Mkdir());
+        $filesystem->addPlugin(new Rmdir());
+        $filesystem->addPlugin(new Stat());
+        $filesystem->addPlugin(new Touch());
     }
 
     /**
@@ -224,22 +218,15 @@ class FlysystemStreamWrapper
     {
         $this->uri = $uri;
 
-        $path = Util::normalizePath($this->getTarget());
-        $filesystem = $this->getFilesystem();
-
-        // If recursive, or a single level directory, just create it.
-        if (($options & STREAM_MKDIR_RECURSIVE) || strpos($path, '/') === false) {
-            return $filesystem->createDir($path);
-        }
-
-        if (!$filesystem->has(dirname($path))) {
+        try {
+            return $this->getFilesystem()->mkdir($this->getTarget(), $mode, $options);
+        } catch (FileNotFoundException $e) {
             if ($this->reportErrors($options)) {
                 trigger_error(sprintf('mkdir(%s): No such file or directory', $uri), E_USER_WARNING);
             }
-            return false;
         }
 
-        return $filesystem->createDir($path);
+        return false;
     }
 
     /**
@@ -254,39 +241,11 @@ class FlysystemStreamWrapper
     {
         $this->uri = $uri_from;
 
-        // Use normalizePath() here so that we can compare them below.
-        $path_from = Util::normalizePath($this->getTarget($uri_from));
-        $path_to = Util::normalizePath($this->getTarget($uri_to));
-
-        // Ignore useless renames.
-        if ($path_from === $path_to) {
-            return true;
-        }
-
-        return $this->doRename($path_from, $path_to);
-    }
-
-    /**
-     * Performs a rename.
-     *
-     * @param string $path_from The source path.
-     * @param string $path_to   The destination path.
-     *
-     * @return bool True if successful, false if not.
-     */
-    protected function doRename($path_from, $path_to)
-    {
         try {
-            return $this->getFilesystem()->rename($path_from, $path_to);
+            return $this->getFilesystem()->forcedRename($this->getTarget($uri_from), $this->getTarget($uri_to));
 
         } catch (FileNotFoundException $e) {
-            trigger_error(sprintf('rename(%s,%s): No such file or directory', $path_from, $path_to), E_USER_WARNING);
-
-        } catch (FileExistsException $e) {
-            // PHP's rename() will overwrite an existing file. Emulate that.
-            if ($this->doUnlink($path_to)) {
-                return $this->getFilesystem()->rename($path_from, $path_to);
-            }
+            trigger_error(sprintf('rename(%s,%s): No such file or directory', $uri_from, $uri_to), E_USER_WARNING);
         }
 
         return false;
@@ -303,41 +262,18 @@ class FlysystemStreamWrapper
     public function rmdir($uri, $options)
     {
         $this->uri = $uri;
-        $path = $this->getTarget();
 
-        if ($options & STREAM_MKDIR_RECURSIVE) {
-            // I don't know how this gets triggered.
-            return $this->doRmdir($path, $options); // @codeCoverageIgnore
-        }
-
-        $contents = $this->getFilesystem()->listContents($path);
-        if (empty($contents)) {
-            return $this->doRmdir($path, $options);
-        }
-
-        if ($this->reportErrors($options)) {
-            trigger_error(sprintf('rmdir(%s): Directory not empty', $this->uri), E_USER_WARNING);
-        }
-
-        return false;
-    }
-
-    /**
-     * Deletes a directory recursively.
-     *
-     * @param string $path    The path to delete.
-     * @param int    $options Bitwise options.
-     *
-     * @return bool True on success, false on failure.
-     */
-    protected function doRmdir($path, $options)
-    {
         try {
-            return $this->getFilesystem()->deleteDir($path);
+            return $this->getFilesystem()->rmdir($this->getTarget(), $options);
 
         } catch (RootViolationException $e) {
             if ($this->reportErrors($options)) {
                 trigger_error(sprintf('rmdir(%s): Cannot remove the root directory', $this->uri), E_USER_WARNING);
+            }
+
+        } catch (FileExistsException $e) {
+            if ($this->reportErrors($options)) {
+                trigger_error(sprintf('rmdir(%s): Directory not empty', $this->uri), E_USER_WARNING);
             }
         }
 
@@ -426,29 +362,11 @@ class FlysystemStreamWrapper
                 return true;
 
             case STREAM_META_TOUCH:
-                return $this->touch($this->getTarget());
+                return $this->getFilesystem()->touch($this->getTarget());
 
             default:
                 return false;
         }
-    }
-
-    /**
-     * Emulates touch().
-     *
-     * @param string $path The path to touch.
-     *
-     * @return bool True if successful, false if not.
-     */
-    protected function touch($path)
-    {
-        $filesystem = $this->getFilesystem();
-
-        if (!$filesystem->has($path)) {
-            return $filesystem->put($path, '');
-        }
-
-        return true;
     }
 
     /**
@@ -613,22 +531,10 @@ class FlysystemStreamWrapper
     {
         $this->uri = $uri;
 
-        return $this->doUnlink($this->getTarget());
-    }
-
-    /**
-     * Performs the actual deletion of a file.
-     *
-     * @param string $path An internal path.
-     *
-     * @return bool True on success, false on failure.
-     */
-    protected function doUnlink($path)
-    {
         try {
-            return $this->getFilesystem()->delete($path);
+            return $this->getFilesystem()->delete($this->getTarget());
         } catch (FileNotFoundException $e) {
-            trigger_error(sprintf('unlink(%s): No such file or directory', $path), E_USER_WARNING);
+            trigger_error(sprintf('unlink(%s): No such file or directory', $uri), E_USER_WARNING);
         }
 
         return false;
@@ -649,45 +555,12 @@ class FlysystemStreamWrapper
         $this->uri = $uri;
 
         try {
-            $metadata = $this->getFilesystem()->getMetadata($this->getTarget());
+            return $this->getFilesystem()->stat($this->getTarget(), $flags);
         } catch (FileNotFoundException $e) {
-            return false;
+            // File doesn't exist.
         }
 
-        // It's possible for getMetadata() to fail even if a file exists.
-        // @todo Figure out the correct way to handle this.
-        if ($metadata === false) {
-            return static::$defaultMeta; // @codeCoverageIgnore
-        }
-
-        return $this->mergeMeta($metadata);
-    }
-
-    /**
-     * Merges the available metadata from Filesystem::getMetadata().
-     *
-     * @param array $metadata The metadata.
-     *
-     * @return array All metadata with default values filled in.
-     */
-    protected function mergeMeta(array $metadata)
-    {
-        $ret = static::$defaultMeta;
-
-        // Dirs are 0777. Files are 0666.
-        $ret['mode'] = $metadata['type'] === 'dir' ? 040777 : 0100664;
-
-        if (isset($metadata['size'])) {
-            $ret['size'] = $metadata['size'];
-        }
-        if (isset($metadata['timestamp'])) {
-            $ret['mtime'] = $metadata['timestamp'];
-            $ret['ctime'] = $metadata['timestamp'];
-        }
-
-        $ret['atime'] = time();
-
-        return array_merge(array_values($ret), $ret);
+        return false;
     }
 
     /**
