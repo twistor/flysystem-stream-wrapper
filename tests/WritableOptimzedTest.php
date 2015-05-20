@@ -7,7 +7,7 @@ use League\Flysystem\Filesystem;
 use Twistor\FlysystemStreamWrapper;
 use Twistor\Tests\WritableLocal;
 
-class WritableOptimzedTest  extends FlysystemStreamWrapperTest
+class WritableOptimzedTest  extends StreamOperationTest
 {
     public function setUp()
     {
