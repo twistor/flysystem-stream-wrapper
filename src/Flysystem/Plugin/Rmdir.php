@@ -42,7 +42,7 @@ class Rmdir extends AbstractPlugin
         $contents = $this->filesystem->listContents($dirname);
 
         if (!empty($contents)) {
-            throw new FileExistsException();
+            throw new FileExistsException($dirname);
         }
 
         return (bool) $adapter->deleteDir($dirname);

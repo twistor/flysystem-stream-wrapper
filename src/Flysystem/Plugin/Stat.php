@@ -41,7 +41,9 @@ class Stat extends AbstractPlugin
      * @param string $path
      * @param int    $flags
      *
-     * @return bool True on success, false on failure.
+     * @return array Output similar to stat().
+     *
+     * @see stat()
      */
     public function handle($path, $flags)
     {

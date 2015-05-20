@@ -6,7 +6,6 @@ use League\Flysystem\FileExistsException;
 use League\Flysystem\FileNotFoundException;
 use League\Flysystem\FilesystemInterface;
 use League\Flysystem\RootViolationException;
-use League\Flysystem\Util;
 use Twistor\Flysystem\Plugin\ForcedRename;
 use Twistor\Flysystem\Plugin\Mkdir;
 use Twistor\Flysystem\Plugin\Rmdir;
