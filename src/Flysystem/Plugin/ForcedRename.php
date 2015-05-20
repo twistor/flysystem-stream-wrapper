@@ -72,7 +72,8 @@ class ForcedRename extends AbstractPlugin
         $dest_meta = $adapter->getMetadata($dest);
 
         if ($dest_meta['type'] === 'dir') {
-            if (!empty($contents = $this->filesystem->listContents($dest))) {
+            $contents = $this->filesystem->listContents($dest);
+            if (!empty($contents)) {
                 throw new DirectoryNotEmptyException();
             }
         }
