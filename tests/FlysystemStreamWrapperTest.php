@@ -90,11 +90,63 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
         $this->assertFileContent('test_file2.txt', 'contents');
         $this->assertWrapperFileNotExists('test_file.txt');
 
-        // // Test overwriting existing files.
+        // Test overwriting existing files.
         $this->putContent('test_file3.txt', 'oops');
         rename('flysystem://test_file2.txt', 'flysystem://test_file3.txt');
         $this->assertWrapperFileNotExists('test_file2.txt');
         $this->assertFileContent('test_file3.txt', 'contents');
+
+        // Test directories.
+        $this->assertTrue(mkdir('flysystem://dir1'));
+        $this->assertTrue(mkdir('flysystem://dir2'));
+        $this->assertTrue(rename('flysystem://dir1', 'flysystem://dir2'));
+        $this->assertFalse(is_dir('flysystem://dir1'));
+        $this->assertTrue(is_dir('flysystem://dir2'));
+    }
+
+    /**
+     * @expectedException PHPUnit_Framework_Error_Warning
+     */
+    public function testRenameFileToDir()
+    {
+        // Test overwriting directory with file.
+        mkdir('flysystem://dir');
+        touch('flysystem://file');
+        $this->assertFalse(@rename('flysystem://file', 'flysystem://dir'));
+        rename('flysystem://file', 'flysystem://dir');
+    }
+
+    /**
+     * @expectedException PHPUnit_Framework_Error_Warning
+     */
+    public function testRenameDirToFile()
+    {
+        // Test overwriting directory with file.
+        mkdir('flysystem://dir');
+        touch('flysystem://file');
+        $this->assertFalse(@rename('flysystem://dir', 'flysystem://file'));
+        rename('flysystem://dir', 'flysystem://file');
+    }
+
+    /**
+     * @expectedException PHPUnit_Framework_Error_Warning
+     */
+    public function testRenameDirNotEmpty()
+    {
+        $this->assertTrue(mkdir('flysystem://dir1'));
+        $this->assertTrue(mkdir('flysystem://dir2/boo', 0777, true));
+        $this->assertFalse(@rename('flysystem://dir1', 'flysystem://dir2'));
+        rename('flysystem://dir1', 'flysystem://dir2');
+    }
+
+    /**
+     * @expectedException PHPUnit_Framework_Error_Warning
+     */
+    public function testRenameNoSubDir()
+    {
+        $this->assertTrue(touch('flysystem://file'));
+        $this->assertFalse(@rename('flysystem://file', 'flysystem://dir/file'));
+        rename('flysystem://file', 'flysystem://dir/file');
     }
 
     public function testRmdirMkdir()

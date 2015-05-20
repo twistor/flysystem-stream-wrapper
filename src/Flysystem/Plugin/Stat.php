@@ -2,8 +2,6 @@
 
 namespace Twistor\Flysystem\Plugin;
 
-use League\Flysystem\Plugin\AbstractPlugin;
-
 class Stat extends AbstractPlugin
 {
     /**

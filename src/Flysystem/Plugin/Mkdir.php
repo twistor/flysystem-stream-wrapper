@@ -2,9 +2,7 @@
 
 namespace Twistor\Flysystem\Plugin;
 
-use League\Flysystem\Config;
 use League\Flysystem\FileNotFoundException;
-use League\Flysystem\Plugin\AbstractPlugin;
 use League\Flysystem\Util;
 
 class Mkdir extends AbstractPlugin
@@ -29,20 +27,18 @@ class Mkdir extends AbstractPlugin
     public function handle($dirname, $mode, $options)
     {
         $dirname = Util::normalizePath($dirname);
-        $config = new Config();
-        $config->setFallback($this->filesystem->getConfig());
 
         $adapter = $this->filesystem->getAdapter();
 
         // If recursive, or a single level directory, just create it.
         if (($options & STREAM_MKDIR_RECURSIVE) || strpos($dirname, '/') === false) {
-            return (bool) $adapter->createDir($dirname, $config);
+            return (bool) $adapter->createDir($dirname, $this->defaultConfig());
         }
 
         if (!$adapter->has(dirname($dirname))) {
             throw new FileNotFoundException($dirname);
         }
 
-        return (bool) $adapter->createDir($dirname, $config);
+        return (bool) $adapter->createDir($dirname, $this->defaultConfig());
     }
 }

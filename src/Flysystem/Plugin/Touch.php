@@ -2,8 +2,6 @@
 
 namespace Twistor\Flysystem\Plugin;
 
-use League\Flysystem\Config;
-use League\Flysystem\Plugin\AbstractPlugin;
 use League\Flysystem\Util;
 
 class Touch extends AbstractPlugin
@@ -32,9 +30,6 @@ class Touch extends AbstractPlugin
             return true;
         }
 
-        $config = new Config();
-        $config->setFallback($this->filesystem->getConfig());
-
-        return (bool) $adapter->write($path, '', $config);
+        return (bool) $adapter->write($path, '', $this->defaultConfig());
     }
 }

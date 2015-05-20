@@ -6,6 +6,8 @@ use League\Flysystem\FileExistsException;
 use League\Flysystem\FileNotFoundException;
 use League\Flysystem\FilesystemInterface;
 use League\Flysystem\RootViolationException;
+use Twistor\Flysystem\Exception\DirectoryExistsException;
+use Twistor\Flysystem\Exception\DirectoryNotEmptyException;
 use Twistor\Flysystem\Plugin\ForcedRename;
 use Twistor\Flysystem\Plugin\Mkdir;
 use Twistor\Flysystem\Plugin\Rmdir;
@@ -219,6 +221,7 @@ class FlysystemStreamWrapper
 
         try {
             return $this->getFilesystem()->mkdir($this->getTarget(), $mode, $options);
+
         } catch (FileNotFoundException $e) {
             if ($this->reportErrors($options)) {
                 trigger_error(sprintf('mkdir(%s): No such file or directory', $uri), E_USER_WARNING);
@@ -245,6 +248,15 @@ class FlysystemStreamWrapper
 
         } catch (FileNotFoundException $e) {
             trigger_error(sprintf('rename(%s,%s): No such file or directory', $uri_from, $uri_to), E_USER_WARNING);
+
+        } catch (FileExistsException $e) {
+            trigger_error(sprintf('rename(%s,%s): Not a directory', $uri_from, $uri_to), E_USER_WARNING);
+
+        } catch (DirectoryExistsException $e) {
+            trigger_error(sprintf('rename(%s,%s): Is a directory', $uri_from, $uri_to), E_USER_WARNING);
+
+        } catch (DirectoryNotEmptyException $e) {
+            trigger_error(sprintf('rename(%s,%s): Directory not empty', $uri_from, $uri_to), E_USER_WARNING);
         }
 
         return false;
@@ -345,7 +357,7 @@ class FlysystemStreamWrapper
      * Changes stream options.
      *
      * @param string $uri
-     * @param int    $options
+     * @param int    $option
      * @param mixed  $value
      *
      * @return bool True on success, false on failure.

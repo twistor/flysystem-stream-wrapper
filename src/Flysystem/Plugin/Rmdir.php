@@ -3,7 +3,6 @@
 namespace Twistor\Flysystem\Plugin;
 
 use League\Flysystem\FileExistsException;
-use League\Flysystem\Plugin\AbstractPlugin;
 use League\Flysystem\RootViolationException;
 use League\Flysystem\Util;
 
