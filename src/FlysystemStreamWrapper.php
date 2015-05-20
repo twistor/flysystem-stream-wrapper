@@ -371,8 +371,6 @@ class FlysystemStreamWrapper
      * @param int    $options
      * @param string &$opened_path
      *
-     * @todo STREAM_REPORT_ERRORS
-     *
      * @return bool True on success, false on failure.
      */
     public function stream_open($uri, $mode, $options, &$opened_path)

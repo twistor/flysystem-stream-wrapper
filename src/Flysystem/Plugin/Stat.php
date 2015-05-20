@@ -48,7 +48,7 @@ class Stat extends AbstractPlugin
         $metadata = $this->filesystem->getMetadata($path);
 
         // It's possible for getMetadata() to fail even if a file exists.
-        // @todo Figure out the correct way to handle this.
+        // Is the correct way to handle this?
         if ($metadata === false) {
             return static::$defaultMeta;
         }
