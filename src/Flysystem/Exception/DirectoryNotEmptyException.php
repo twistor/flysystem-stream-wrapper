@@ -2,9 +2,7 @@
 
 namespace Twistor\Flysystem\Exception;
 
-use League\Flysystem\Exception;
-
-class DirectoryNotEmptyException extends Exception
+class DirectoryNotEmptyException extends TriggerErrorException
 {
-
+    protected $message = '%s(%s): Directory not empty';
 }

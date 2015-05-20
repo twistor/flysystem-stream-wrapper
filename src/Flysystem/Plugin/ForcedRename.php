@@ -101,7 +101,7 @@ class ForcedRename extends AbstractPlugin
                 throw new DirectoryExistsException();
             }
 
-            throw new NotADirectoryException($dest);
+            throw new NotADirectoryException();
         }
 
         // Allow overwriting destination file.

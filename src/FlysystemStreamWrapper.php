@@ -769,10 +769,10 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * Calls trigger_error() printing the appropriate message.
+     * Calls trigger_error(), printing the appropriate message.
      *
-     * @param string $function
-     * @param array $args
+     * @param string     $function
+     * @param string[]   $args
      * @param \Exception $e
      */
     protected function triggerError($function, array $args, \Exception $e)
@@ -784,20 +784,14 @@ class FlysystemStreamWrapper
                 trigger_error(vsprintf('%s(%s): No such file or directory', $vars), E_USER_WARNING);
                 break;
 
-            case 'Twistor\Flysystem\Exception\NotADirectoryException':
-                trigger_error(vsprintf('%s(%s): Not a directory', $vars), E_USER_WARNING);
-                break;
-
-            case 'Twistor\Flysystem\Exception\DirectoryExistsException':
-                trigger_error(vsprintf('%s(%s): Is a directory', $vars), E_USER_WARNING);
-                break;
-
-            case 'Twistor\Flysystem\Exception\DirectoryNotEmptyException':
-                trigger_error(vsprintf('%s(%s): Directory not empty', $vars), E_USER_WARNING);
-                break;
-
             case 'League\Flysystem\RootViolationException':
                 trigger_error(vsprintf('%s(%s): Cannot remove the root directory', $vars), E_USER_WARNING);
+                break;
+
+            case 'Twistor\Flysystem\Exception\NotADirectoryException':
+            case 'Twistor\Flysystem\Exception\DirectoryExistsException':
+            case 'Twistor\Flysystem\Exception\DirectoryNotEmptyException':
+                trigger_error($e->formatMessage($vars), E_USER_WARNING);
                 break;
 
             // Throw any unhandled exceptions.

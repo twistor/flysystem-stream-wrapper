@@ -2,9 +2,8 @@
 
 namespace Twistor\Flysystem\Exception;
 
-use League\Flysystem\Exception;
-
-class NotADirectoryException extends Exception
+class NotADirectoryException extends TriggerErrorException
 {
+    protected $message = '%s(%s): Not a directory';
 
 }
