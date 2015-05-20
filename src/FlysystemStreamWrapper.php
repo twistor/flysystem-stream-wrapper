@@ -4,6 +4,7 @@ namespace Twistor;
 
 use League\Flysystem\FileNotFoundException;
 use League\Flysystem\FilesystemInterface;
+use Twistor\Flysystem\Exception\TriggerErrorException;
 use Twistor\Flysystem\Plugin\ForcedRename;
 use Twistor\Flysystem\Plugin\Mkdir;
 use Twistor\Flysystem\Plugin\Rmdir;
@@ -779,6 +780,11 @@ class FlysystemStreamWrapper
     {
         $vars = [$function, implode(',', $args)];
 
+        if ($e instanceof TriggerErrorException) {
+            trigger_error($e->formatMessage($vars), E_USER_WARNING);
+            return;
+        }
+
         switch (get_class($e)) {
             case 'League\Flysystem\FileNotFoundException':
                 trigger_error(vsprintf('%s(%s): No such file or directory', $vars), E_USER_WARNING);
@@ -786,12 +792,6 @@ class FlysystemStreamWrapper
 
             case 'League\Flysystem\RootViolationException':
                 trigger_error(vsprintf('%s(%s): Cannot remove the root directory', $vars), E_USER_WARNING);
-                break;
-
-            case 'Twistor\Flysystem\Exception\NotADirectoryException':
-            case 'Twistor\Flysystem\Exception\DirectoryExistsException':
-            case 'Twistor\Flysystem\Exception\DirectoryNotEmptyException':
-                trigger_error($e->formatMessage($vars), E_USER_WARNING);
                 break;
 
             // Throw any unhandled exceptions.
