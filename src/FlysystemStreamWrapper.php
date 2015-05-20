@@ -144,6 +144,11 @@ class FlysystemStreamWrapper
         return in_array($protocol, stream_get_wrappers(), true);
     }
 
+    /**
+     * Registers plugins on the filesystem.
+     *
+     * @param \League\Flysystem\FilesystemInterface $filesystem
+     */
     protected static function registerPlugins(FilesystemInterface $filesystem)
     {
         $filesystem->addPlugin(new ForcedRename());
@@ -223,9 +228,7 @@ class FlysystemStreamWrapper
             return $this->getFilesystem()->mkdir($this->getTarget(), $mode, $options);
 
         } catch (FileNotFoundException $e) {
-            if ($this->reportErrors($options)) {
-                trigger_error(sprintf('mkdir(%s): No such file or directory', $uri), E_USER_WARNING);
-            }
+            trigger_error(sprintf('mkdir(%s): No such file or directory', $uri), E_USER_WARNING);
         }
 
         return false;
@@ -278,14 +281,10 @@ class FlysystemStreamWrapper
             return $this->getFilesystem()->rmdir($this->getTarget(), $options);
 
         } catch (RootViolationException $e) {
-            if ($this->reportErrors($options)) {
-                trigger_error(sprintf('rmdir(%s): Cannot remove the root directory', $this->uri), E_USER_WARNING);
-            }
+            trigger_error(sprintf('rmdir(%s): Cannot remove the root directory', $this->uri), E_USER_WARNING);
 
         } catch (FileExistsException $e) {
-            if ($this->reportErrors($options)) {
-                trigger_error(sprintf('rmdir(%s): Directory not empty', $this->uri), E_USER_WARNING);
-            }
+            trigger_error(sprintf('rmdir(%s): Directory not empty', $this->uri), E_USER_WARNING);
         }
 
         return false;
@@ -741,18 +740,6 @@ class FlysystemStreamWrapper
         }
 
         return true;
-    }
-
-    /**
-     * Determines whether errors should be reported.
-     *
-     * @param int $options Options passed to stream functions.
-     *
-     * @return bool True if errors should be reported.
-     */
-    protected function reportErrors($options)
-    {
-        return ($options & STREAM_REPORT_ERRORS) || defined('HHVM_VERSION');
     }
 
     /**

@@ -53,7 +53,7 @@ class ForcedRename extends AbstractPlugin
      * Checks that a rename is valid.
      *
      * @param string $source
-     * @param sting $dest
+     * @param string $dest
      *
      * @return bool
      */
@@ -73,18 +73,18 @@ class ForcedRename extends AbstractPlugin
             return true;
         }
 
-        return $this->compareMetadata($source, $dest);
+        return $this->compareTypes($source, $dest);
     }
 
     /**
-     * Compares the metadata for the source and dest.
+     * Compares the file/dir for the source and dest.
      *
      * @param string $source
      * @param string $dest
      *
      * @return bool
      */
-    protected function compareMetadata($source, $dest)
+    protected function compareTypes($source, $dest)
     {
         $adapter = $this->filesystem->getAdapter();
 
