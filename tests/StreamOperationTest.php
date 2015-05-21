@@ -200,14 +200,9 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
 
     public function testLock()
     {
-        $handle = fopen('flysystem://file', 'w');
-
-        // HHVM allows locks on memory handles?
-        if (defined('HHVM_VERSION')) {
-            $this->assertTrue(flock($handle, LOCK_SH));
-        } else {
-            $this->assertFalse(flock($handle, LOCK_SH));
-        }
+        $handle1 = fopen('flysystem://file', 'w');
+        $this->assertTrue(flock($handle1, LOCK_EX));
+        $this->assertTrue(flock($handle1, LOCK_UN));
     }
 
     public function testSetOption()
