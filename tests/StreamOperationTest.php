@@ -279,12 +279,7 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
 
         // ftell() and fseek() are undefined for append files. HHVM enforces
         // this.
-        if (defined('HHVM_VERSION')) {
-            $this->assertSame(0, ftell($handle));
-        } else {
-            $this->assertSame(17, ftell($handle));
-        }
-
+        $this->assertSame(0, ftell($handle));
         $this->assertSame(0, fseek($handle, 0));
 
         // Test write-only.

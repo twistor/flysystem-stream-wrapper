@@ -459,6 +459,9 @@ class FlysystemStreamWrapper
      */
     public function stream_tell()
     {
+        if ($this->isAppendOnly) {
+            return 0;
+        }
         return ftell($this->handle);
     }
 
