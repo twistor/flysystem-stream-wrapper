@@ -218,14 +218,34 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
 
     public function testDirectoryIteration()
     {
+        mkdir('flysystem://root');
+        mkdir('flysystem://root/one');
+        mkdir('flysystem://root/two');
+        mkdir('flysystem://root/three');
+
+        $dir = opendir('flysystem://root');
+        $this->assertSame('one', readdir($dir));
+        $this->assertSame('two', readdir($dir));
+        $this->assertSame('three', readdir($dir));
+
+        $this->assertFalse(readdir($dir));
+
+        rewinddir($dir);
+        $this->assertSame(readdir($dir), 'one');
+
+        closedir($dir);
+    }
+
+    public function testDirectoryIterationRoot()
+    {
         mkdir('flysystem://one');
         mkdir('flysystem://two');
         mkdir('flysystem://three');
 
         $dir = opendir('flysystem://');
-        $this->assertSame(readdir($dir), 'one');
-        $this->assertSame(readdir($dir), 'two');
-        $this->assertSame(readdir($dir), 'three');
+        $this->assertSame('one', readdir($dir));
+        $this->assertSame('two', readdir($dir));
+        $this->assertSame('three', readdir($dir));
 
         $this->assertFalse(readdir($dir));
 

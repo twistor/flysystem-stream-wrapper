@@ -178,7 +178,20 @@ class FlysystemStreamWrapper
     public function dir_opendir($uri, $options)
     {
         $this->uri = $uri;
-        $this->listing = $this->getFilesystem()->listContents($this->getTarget());
+
+        $path = $this->getTarget();
+        $this->listing = $this->getFilesystem()->listContents($path);
+
+        if (!$dirlen = strlen($path)) {
+            return true;
+        }
+
+        // Remove directory prefix.
+        foreach ($this->listing as $delta => $item) {
+            $this->listing[$delta]['path'] = substr($item['path'], $dirlen + 1);
+        }
+
+        reset($this->listing);
 
         return true;
     }
