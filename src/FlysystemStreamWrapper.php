@@ -4,6 +4,8 @@ namespace Twistor;
 
 use League\Flysystem\FileNotFoundException;
 use League\Flysystem\FilesystemInterface;
+use League\Flysystem\Plugin\GetWithMetadata;
+use League\Flysystem\Util;
 use Twistor\Flysystem\Exception\TriggerErrorException;
 use Twistor\Flysystem\Plugin\ForcedRename;
 use Twistor\Flysystem\Plugin\Mkdir;
@@ -149,6 +151,7 @@ class FlysystemStreamWrapper
     protected static function registerPlugins(FilesystemInterface $filesystem)
     {
         $filesystem->addPlugin(new ForcedRename());
+        $filesystem->addPlugin(new GetWithMetadata());
         $filesystem->addPlugin(new Mkdir());
         $filesystem->addPlugin(new Rmdir());
         $filesystem->addPlugin(new Stat());
@@ -179,16 +182,19 @@ class FlysystemStreamWrapper
     {
         $this->uri = $uri;
 
-        $path = $this->getTarget();
+        $path = Util::normalizePath($this->getTarget());
         $this->listing = $this->getFilesystem()->listContents($path);
 
         if (!$dirlen = strlen($path)) {
             return true;
         }
 
+        // Remove the separator /.
+        $dirlen++;
+
         // Remove directory prefix.
         foreach ($this->listing as $delta => $item) {
-            $this->listing[$delta]['path'] = substr($item['path'], $dirlen + 1);
+            $this->listing[$delta]['path'] = substr($item['path'], $dirlen);
         }
 
         reset($this->listing);

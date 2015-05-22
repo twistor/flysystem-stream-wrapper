@@ -26,6 +26,13 @@ class Stat extends AbstractPlugin
     ];
 
     /**
+     * Required metadata.
+     *
+     * @var array
+     */
+    protected static $required = ['timestamp', 'size'];
+
+    /**
      * {@inheritdoc}
      */
     public function getMethod()
@@ -45,7 +52,7 @@ class Stat extends AbstractPlugin
      */
     public function handle($path, $flags)
     {
-        $metadata = $this->filesystem->getMetadata($path);
+        $metadata = $this->filesystem->getWithMetadata($path, static::$required);
 
         // It's possible for getMetadata() to fail even if a file exists.
         // Is the correct way to handle this?
@@ -71,11 +78,11 @@ class Stat extends AbstractPlugin
         $ret['mode'] = $metadata['type'] === 'dir' ? 040777 : 0100664;
 
         if (isset($metadata['size'])) {
-            $ret['size'] = $metadata['size'];
+            $ret['size'] = (int) $metadata['size'];
         }
         if (isset($metadata['timestamp'])) {
-            $ret['mtime'] = $metadata['timestamp'];
-            $ret['ctime'] = $metadata['timestamp'];
+            $ret['mtime'] = (int) $metadata['timestamp'];
+            $ret['ctime'] = (int) $metadata['timestamp'];
         }
 
         $ret['atime'] = time();
