@@ -235,7 +235,6 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
         fclose($handle);
     }
 
-
     public function testDirectoryIteration()
     {
         mkdir('flysystem://root');

@@ -2,9 +2,10 @@
 
 namespace Twistor\Tests;
 
+use Prophecy\PhpUnit\ProphecyTestCase;
 use Twistor\Flysystem\Plugin\Stat;
 
-class StatTest extends \PHPUnit_Framework_TestCase
+class StatTest extends ProphecyTestCase
 {
     public function test()
     {

@@ -3,9 +3,10 @@
 namespace Twistor\Tests;
 
 use League\Flysystem\Filesystem;
+use Prophecy\PhpUnit\ProphecyTestCase;
 use Twistor\Flysystem\Plugin\ForcedRename;
 
-class ForcedRenameTest extends \PHPUnit_Framework_TestCase
+class ForcedRenameTest extends ProphecyTestCase
 {
     public function test()
     {

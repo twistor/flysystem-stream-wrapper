@@ -65,9 +65,10 @@ class ForcedRename extends AbstractPlugin
             throw new FileNotFoundException($source);
         }
 
-        $subdir = dirname($dest);
+        $subdir = Util::dirname($dest);
 
-        if ($subdir !== '.' && !$adapter->has($subdir)) {
+        // isset($subdir[0]) is a quick check for strlen($subdir) > 0.
+        if (isset($subdir[0]) && !$adapter->has($subdir)) {
             throw new FileNotFoundException($source);
         }
 

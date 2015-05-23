@@ -3,9 +3,10 @@
 namespace Twistor\Tests;
 
 use League\Flysystem\Filesystem;
+use Prophecy\PhpUnit\ProphecyTestCase;
 use Twistor\Flysystem\Plugin\Rmdir;
 
-class RmdirTest extends \PHPUnit_Framework_TestCase
+class RmdirTest extends ProphecyTestCase
 {
     public function test()
     {
