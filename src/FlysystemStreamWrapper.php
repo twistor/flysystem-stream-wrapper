@@ -353,9 +353,12 @@ class FlysystemStreamWrapper
      */
     public function stream_lock($operation)
     {
+        // Normalize paths so that locks are consistent.
+        $normalized = $this->getProtocol() . '://' . Util::normalizePath($this->getTarget());
+
         // Relay the lock to a real filesystem lock.
         // We should make this pluggable, for instance, database locks.
-        $lockfile = sys_get_temp_dir() . '/' . sha1($this->uri);
+        $lockfile = sys_get_temp_dir() . '/' . sha1($normalized);
         $handle = fopen($lockfile, 'w');
         $success = flock($handle, $operation);
         fclose($handle);
