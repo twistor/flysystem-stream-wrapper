@@ -455,8 +455,15 @@ class FlysystemStreamWrapper
      */
     public function stream_set_option($option, $arg1, $arg2)
     {
-        if ($option === STREAM_OPTION_BLOCKING) {
-            return stream_set_blocking($this->handle, $arg1);
+        switch ($option) {
+            case STREAM_OPTION_BLOCKING:
+                return stream_set_blocking($this->handle, $arg1);
+
+            case STREAM_OPTION_READ_TIMEOUT:
+                return  stream_set_timeout($this->handle, $arg1, $arg2);
+
+            case STREAM_OPTION_WRITE_BUFFER:
+                return stream_set_write_buffer($this->handle, $arg2) === 0;
         }
 
         return false;

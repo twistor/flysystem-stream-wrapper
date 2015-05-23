@@ -211,9 +211,13 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
 
         $this->assertTrue(stream_set_blocking($handle, 0));
         $this->assertFalse(stream_set_timeout($handle, 10));
-        $this->assertSame(stream_set_write_buffer($handle, 100), -1);
+        $this->assertSame(-1, stream_set_write_buffer($handle, 100));
 
         fclose($handle);
+
+        // Test fallthough. Just code coverage nonsense.
+        $wrapper = new FlysystemStreamWrapper();
+        $this->assertFalse($wrapper->stream_set_option('invallid', 'arguments', 'stuff'));
     }
 
     public function testDirectoryIteration()
