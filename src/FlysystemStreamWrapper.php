@@ -455,11 +455,6 @@ class FlysystemStreamWrapper
      */
     public function stream_set_option($option, $arg1, $arg2)
     {
-        // HHVM does not support stream_set_option().
-        if (defined('HHVM_VERSION')) {
-            return false;
-        }
-
         switch ($option) {
             case STREAM_OPTION_BLOCKING:
                 return stream_set_blocking($this->handle, $arg1);

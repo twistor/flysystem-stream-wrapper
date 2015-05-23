@@ -209,7 +209,7 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
     {
         // Bypass for HHVM.
         if (defined('HHVM_VERSION')) {
-            return $this->testSetOptionHHVM();
+            return $this->setOptionHHVM();
         }
 
         $handle = fopen('flysystem://thing', 'w+');
@@ -225,15 +225,13 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
         $this->assertFalse($wrapper->stream_set_option('invallid', 'arguments', 'stuff'));
     }
 
-    public function testSetOptionHHVM()
+    public function setOptionHHVM()
     {
-        if (!defined('HHVM_VERSION')) {
-            define('HHVM_VERSION', 1);
-        }
-
         $handle = fopen('flysystem://thing', 'w+');
 
-        $this->assertFalse(stream_set_blocking($handle, 0));
+        // HHVM allows stream_set_blocking() to be called through some other
+        // mechanism, not the stream wrapper API, but not the rest of the API.
+        $this->assertTrue(stream_set_blocking($handle, 0));
         fclose($handle);
     }
 
