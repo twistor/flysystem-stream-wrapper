@@ -57,8 +57,6 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
     {
         $this->putContent('file.txt', 'contents');
 
-        $this->assertTrue(chmod('flysystem://file.txt', 0888));
-        $this->assertPerm('file.txt', 0700);
         $this->assertTrue(chmod('flysystem://file.txt', 0777));
         $this->assertPerm('file.txt', 0744);
         $this->assertTrue(chmod('flysystem://file.txt', 0333));
