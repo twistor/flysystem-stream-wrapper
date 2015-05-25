@@ -2,6 +2,8 @@
 
 namespace Twistor\Flysystem\Plugin;
 
+use League\Flysystem\AdapterInterface;
+
 class Stat extends AbstractPlugin
 {
     /**
@@ -30,7 +32,7 @@ class Stat extends AbstractPlugin
      *
      * @var array
      */
-    protected static $required = ['timestamp', 'size'];
+    protected static $required = ['timestamp', 'size', 'visibility'];
 
     /**
      * {@inheritdoc}
@@ -60,7 +62,7 @@ class Stat extends AbstractPlugin
             return static::$defaultMeta;
         }
 
-        return $this->mergeMeta($metadata);
+        return $this->mergeMeta($metadata + ['visibility' => AdapterInterface::VISIBILITY_PUBLIC]);
     }
 
     /**
@@ -74,8 +76,8 @@ class Stat extends AbstractPlugin
     {
         $ret = static::$defaultMeta;
 
-        // Dirs are 0777. Files are 0666.
-        $ret['mode'] = $metadata['type'] === 'dir' ? 040777 : 0100664;
+        $ret['mode'] = $metadata['type'] === 'dir' ? 040000 : 0100000;
+        $ret['mode'] += $metadata['visibility'] === AdapterInterface::VISIBILITY_PRIVATE ? 0700 : 0744;
 
         if (isset($metadata['size'])) {
             $ret['size'] = (int) $metadata['size'];
