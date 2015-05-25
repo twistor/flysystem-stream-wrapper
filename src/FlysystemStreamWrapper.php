@@ -2,6 +2,7 @@
 
 namespace Twistor;
 
+use League\Flysystem\AdapterInterface;
 use League\Flysystem\FileNotFoundException;
 use League\Flysystem\FilesystemInterface;
 use League\Flysystem\Plugin\GetWithMetadata;
@@ -380,8 +381,10 @@ class FlysystemStreamWrapper
 
         switch ($option) {
             case STREAM_META_ACCESS:
-                // Emulate chmod() since lots of things depend on it.
-                return true;
+                $permissions = octdec(substr(decoct($value), -4));
+                $visibility = $permissions & 0044 ? AdapterInterface::VISIBILITY_PUBLIC : AdapterInterface::VISIBILITY_PRIVATE;
+
+                return $this->getFilesystem()->setVisibility($this->getTarget(), $visibility);
 
             case STREAM_META_TOUCH:
                 return $this->getFilesystem()->touch($this->getTarget());

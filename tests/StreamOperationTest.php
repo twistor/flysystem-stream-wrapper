@@ -51,9 +51,18 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
 
         // Chown isn't supported.
         $this->assertFalse(chown('flysystem://touched', 'asfasf'));
+    }
 
-        // Chmod is faked.
-        $this->assertTrue(chmod('flysystem://touched', 0777));
+    public function testChmod()
+    {
+        $this->putContent('file.txt', 'contents');
+
+        $this->assertTrue(chmod('flysystem://file.txt', 0888));
+        $this->assertPerm('file.txt', 0700);
+        $this->assertTrue(chmod('flysystem://file.txt', 0777));
+        $this->assertPerm('file.txt', 0744);
+        $this->assertTrue(chmod('flysystem://file.txt', 0333));
+        $this->assertPerm('file.txt', 0700);
     }
 
     public function testUnlink()
@@ -424,5 +433,13 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
         $len = file_put_contents("flysystem://$file", $content);
         $this->assertSame(strlen($content), $len);
         $this->assertFileContent($file, $content);
+    }
+
+    protected function assertPerm($file, $perm) {
+        clearstatcache($this->testDir . '/' . $file);
+
+        $fileperm = fileperms($this->testDir . '/' . $file);
+
+        $this->assertSame($perm, octdec(substr(decoct($fileperm), -4)));
     }
 }
