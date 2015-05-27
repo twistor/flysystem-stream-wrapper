@@ -5,7 +5,6 @@ namespace Twistor;
 use League\Flysystem\AdapterInterface;
 use League\Flysystem\FileNotFoundException;
 use League\Flysystem\FilesystemInterface;
-use League\Flysystem\Plugin\GetWithMetadata;
 use League\Flysystem\Util;
 use Twistor\Flysystem\Exception\TriggerErrorException;
 use Twistor\Flysystem\Plugin\ForcedRename;
@@ -152,7 +151,6 @@ class FlysystemStreamWrapper
     protected static function registerPlugins(FilesystemInterface $filesystem)
     {
         $filesystem->addPlugin(new ForcedRename());
-        $filesystem->addPlugin(new GetWithMetadata());
         $filesystem->addPlugin(new Mkdir());
         $filesystem->addPlugin(new Rmdir());
         $filesystem->addPlugin(new Stat());

@@ -54,15 +54,47 @@ class Stat extends AbstractPlugin
      */
     public function handle($path, $flags)
     {
-        $metadata = $this->filesystem->getWithMetadata($path, static::$required);
+        $metadata = $this->getWithMetadata($path, static::$required);
 
         // It's possible for getMetadata() to fail even if a file exists.
-        // Is the correct way to handle this?
-        if ($metadata === false) {
+        if (empty($metadata)) {
             return static::$defaultMeta;
         }
 
         return $this->mergeMeta($metadata + ['visibility' => AdapterInterface::VISIBILITY_PUBLIC]);
+    }
+
+    /**
+     * Returns metadata.
+     *
+     * @param string $path
+     *
+     * @return array
+     */
+    protected function getWithMetadata($path)
+    {
+        $metadata = $this->filesystem->getMetadata($path);
+
+        if (empty($metadata)) {
+            return [];
+        }
+
+        $keys = array_diff(static::$required, array_keys($metadata));
+
+        foreach ($keys as $key) {
+            $method = 'get' . ucfirst($key);
+
+            try {
+                $metadata[$key] = $this->filesystem->$method($path);
+            } catch (\Exception $e) {
+                // Some adapters don't support certain metadata. For instance,
+                // the Dropbox adapter throws exceptions when calling
+                // getVisibility(). We should figure out a better way to detect
+                // this. Catching exceptions is messy business.
+            }
+        }
+
+        return $metadata;
     }
 
     /**

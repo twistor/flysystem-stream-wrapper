@@ -13,7 +13,7 @@ class StatTest extends ProphecyTestCase
         $filesystem = $this->prophesize('League\Flysystem\Filesystem');
         $plugin->setFilesystem($filesystem->reveal());
 
-        $filesystem->getWithMetadata('path', ['timestamp', 'size', 'visibility'])->willReturn(false);
+        $filesystem->getMetadata('path')->willReturn(false);
         $this->assertInternalType('array', $plugin->handle('path', 1));
     }
 }
