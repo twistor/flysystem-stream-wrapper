@@ -422,8 +422,9 @@ class FlysystemStreamWrapper
                 try {
                     return $this->getFilesystem()->setVisibility($this->getTarget(), $visibility);
                 } catch (\LogicException $e) {
-                    return true;
+                    // The adapter doesn't support visibility.
                 }
+                return true;
 
             case STREAM_META_TOUCH:
                 return $this->getFilesystem()->touch($this->getTarget());
