@@ -50,7 +50,7 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
         $filesystem = new Filesystem(new NoVisibilityLocal(sys_get_temp_dir()));
         FlysystemStreamWrapper::register('vis', $filesystem);
         $this->assertTrue(touch('vis://test.txt'));
-        $this->assertFalse(chmod('vis://test.txt', 0777));
+        $this->assertTrue(chmod('vis://test.txt', 0777));
         $filesystem->delete('test.txt');
     }
 }

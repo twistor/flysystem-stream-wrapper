@@ -50,7 +50,7 @@ class Stat extends AbstractPlugin
     public function __construct(array $permissions, array $metadata)
     {
         $this->permissions = $permissions;
-        $this->required = $metadata;
+        $this->required = array_combine($metadata, $metadata);
     }
 
     /**
@@ -105,11 +105,14 @@ class Stat extends AbstractPlugin
 
             try {
                 $metadata[$key] = $this->filesystem->$method($path);
-            } catch (\Exception $e) {
+
+            } catch (\LogicException $e) {
                 // Some adapters don't support certain metadata. For instance,
                 // the Dropbox adapter throws exceptions when calling
-                // getVisibility(). We should figure out a better way to detect
-                // this. Catching exceptions is messy business.
+                // getVisibility(). Remove the required key so we don't keep
+                // calling it.
+                unset($this->required[$key]);
+
             }
         }
 

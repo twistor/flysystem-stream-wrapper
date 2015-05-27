@@ -175,8 +175,8 @@ class FlysystemStreamWrapper
     /**
      * Registers plugins on the filesystem.
      *
-     * @param string                                $protocol
-     * @param \League\Flysystem\FilesystemInterface $filesystem
+     * @param string              $protocol
+     * @param FilesystemInterface $filesystem
      */
     protected static function registerPlugins($protocol, FilesystemInterface $filesystem)
     {
@@ -421,8 +421,8 @@ class FlysystemStreamWrapper
 
                 try {
                     return $this->getFilesystem()->setVisibility($this->getTarget(), $visibility);
-                } catch (\Exception $e) {
-                    return false;
+                } catch (\LogicException $e) {
+                    return true;
                 }
 
             case STREAM_META_TOUCH:
