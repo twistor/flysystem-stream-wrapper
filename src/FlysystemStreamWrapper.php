@@ -26,6 +26,33 @@ class FlysystemStreamWrapper
     protected static $filesystems = [];
 
     /**
+     * Optional configuration.
+     *
+     * @var array
+     */
+    protected static $config = [];
+
+    /**
+     * The default configuration.
+     *
+     * @var array
+     */
+    protected static $defaultConfiguration = [
+        'permissions' =>[
+            'dir' => [
+                'private' => 0700,
+                'public' => 0755,
+            ],
+            'file' => [
+                'private' => 0600,
+                'public' => 0644,
+            ],
+        ],
+        'metadata' => ['timestamp', 'size', 'visibility'],
+        'public_mask' => 0044,
+    ];
+
+    /**
      * The filesystem of the current stream wrapper.
      *
      * @var \League\Flysystem\FilesystemInterface
@@ -96,18 +123,20 @@ class FlysystemStreamWrapper
     /**
      * Registers the stream wrapper protocol if not already registered.
      *
-     * @param string                                $protocol   The protocol.
-     * @param \League\Flysystem\FilesystemInterface $filesystem The filesystem.
+     * @param string              $protocol      The protocol.
+     * @param FilesystemInterface $filesystem    The filesystem.
+     * @param array|null          $configuration Optional configuration.
      *
      * @return bool True if the protocal was registered, false if not.
      */
-    public static function register($protocol, FilesystemInterface $filesystem)
+    public static function register($protocol, FilesystemInterface $filesystem, array $configuration = null)
     {
         if (static::streamWrapperExists($protocol)) {
             return false;
         }
 
-        static::registerPlugins($filesystem);
+        static::$config[$protocol] = $configuration ?: static::$defaultConfiguration;
+        static::registerPlugins($protocol, $filesystem);
         static::$filesystems[$protocol] = $filesystem;
 
         return stream_wrapper_register($protocol, __CLASS__);
@@ -146,14 +175,21 @@ class FlysystemStreamWrapper
     /**
      * Registers plugins on the filesystem.
      *
+     * @param string                                $protocol
      * @param \League\Flysystem\FilesystemInterface $filesystem
      */
-    protected static function registerPlugins(FilesystemInterface $filesystem)
+    protected static function registerPlugins($protocol, FilesystemInterface $filesystem)
     {
         $filesystem->addPlugin(new ForcedRename());
         $filesystem->addPlugin(new Mkdir());
         $filesystem->addPlugin(new Rmdir());
-        $filesystem->addPlugin(new Stat());
+
+        $stat = new Stat(
+            static::$config[$protocol]['permissions'],
+            static::$config[$protocol]['metadata']
+        );
+
+        $filesystem->addPlugin($stat);
         $filesystem->addPlugin(new Touch());
     }
 
@@ -380,9 +416,14 @@ class FlysystemStreamWrapper
         switch ($option) {
             case STREAM_META_ACCESS:
                 $permissions = octdec(substr(decoct($value), -4));
-                $visibility = $permissions & 0044 ? AdapterInterface::VISIBILITY_PUBLIC : AdapterInterface::VISIBILITY_PRIVATE;
+                $is_public = $permissions & $this->getConfiguration('public_mask');
+                $visibility =  $is_public ? AdapterInterface::VISIBILITY_PUBLIC : AdapterInterface::VISIBILITY_PRIVATE;
 
-                return $this->getFilesystem()->setVisibility($this->getTarget(), $visibility);
+                try {
+                    return $this->getFilesystem()->setVisibility($this->getTarget(), $visibility);
+                } catch (\Exception $e) {
+                    return false;
+                }
 
             case STREAM_META_TOUCH:
                 return $this->getFilesystem()->touch($this->getTarget());
@@ -780,6 +821,18 @@ class FlysystemStreamWrapper
         }
 
         return substr($uri, strpos($uri, '://') + 3);
+    }
+
+    /**
+     * Returns the configuration.
+     *
+     * @param string|null $key The optional configuration key.
+     *
+     * @return array The requested configuration.
+     */
+    protected function getConfiguration($key = null)
+    {
+        return $key ? static::$config[$this->getProtocol()][$key] : static::$config[$this->getProtocol()];
     }
 
     /**

@@ -28,11 +28,30 @@ class Stat extends AbstractPlugin
     ];
 
     /**
+     * Permission map.
+     *
+     * @var array
+     */
+    protected $permissions;
+
+    /**
      * Required metadata.
      *
      * @var array
      */
-    protected static $required = ['timestamp', 'size', 'visibility'];
+    protected $required;
+
+    /**
+     * Constructs a Stat object.
+     *
+     * @param array $permissions An array of permissions.
+     * @param array $metadata    The default required metadata.
+     */
+    public function __construct(array $permissions, array $metadata)
+    {
+        $this->permissions = $permissions;
+        $this->required = $metadata;
+    }
 
     /**
      * {@inheritdoc}
@@ -54,7 +73,7 @@ class Stat extends AbstractPlugin
      */
     public function handle($path, $flags)
     {
-        $metadata = $this->getWithMetadata($path, static::$required);
+        $metadata = $this->getWithMetadata($path);
 
         // It's possible for getMetadata() to fail even if a file exists.
         if (empty($metadata)) {
@@ -79,7 +98,7 @@ class Stat extends AbstractPlugin
             return [];
         }
 
-        $keys = array_diff(static::$required, array_keys($metadata));
+        $keys = array_diff($this->required, array_keys($metadata));
 
         foreach ($keys as $key) {
             $method = 'get' . ucfirst($key);
@@ -109,7 +128,7 @@ class Stat extends AbstractPlugin
         $ret = static::$defaultMeta;
 
         $ret['mode'] = $metadata['type'] === 'dir' ? 040000 : 0100000;
-        $ret['mode'] += $metadata['visibility'] === AdapterInterface::VISIBILITY_PRIVATE ? 0700 : 0744;
+        $ret['mode'] += $this->permissions[$metadata['type']][$metadata['visibility']];
 
         if (isset($metadata['size'])) {
             $ret['size'] = (int) $metadata['size'];

@@ -6,6 +6,7 @@ use League\Flysystem\Adapter\Local;
 use League\Flysystem\Adapter\NullAdapter;
 use League\Flysystem\Filesystem;
 use Twistor\FlysystemStreamWrapper;
+use Twistor\Tests\NoVisibilityLocal;
 
 class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
 {
@@ -42,5 +43,14 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
         $method = new \ReflectionMethod($wrapper, 'handleIsWritable');
         $method->setAccessible(TRUE);
         $this->assertFalse($method->invokeArgs($wrapper, [false]));
+    }
+
+    public function testNoVisibility()
+    {
+        $filesystem = new Filesystem(new NoVisibilityLocal(sys_get_temp_dir()));
+        FlysystemStreamWrapper::register('vis', $filesystem);
+        $this->assertTrue(touch('vis://test.txt'));
+        $this->assertFalse(chmod('vis://test.txt', 0777));
+        $filesystem->delete('test.txt');
     }
 }

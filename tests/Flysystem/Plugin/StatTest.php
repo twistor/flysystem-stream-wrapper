@@ -9,7 +9,20 @@ class StatTest extends ProphecyTestCase
 {
     public function test()
     {
-        $plugin = new Stat();
+        $permissions = [
+            'dir' => [
+                'private' => 0700,
+                'public' => 0744,
+            ],
+            'file' => [
+                'private' => 0700,
+                'public' => 0744,
+            ],
+        ];
+
+        $metadata = ['size'];
+
+        $plugin = new Stat($permissions, $metadata);
         $filesystem = $this->prophesize('League\Flysystem\Filesystem');
         $plugin->setFilesystem($filesystem->reveal());
 
