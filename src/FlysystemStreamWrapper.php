@@ -818,7 +818,7 @@ class FlysystemStreamWrapper
             return strpos($mode, '+') === 1;
         }
 
-        return true;
+        return $mode[0] !== 'a';
     }
 
     /**
