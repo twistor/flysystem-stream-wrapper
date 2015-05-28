@@ -3,6 +3,7 @@
 namespace Twistor\Flysystem\Plugin;
 
 use League\Flysystem\AdapterInterface;
+use Twistor\FlysystemStreamWrapper;
 
 class Stat extends AbstractPlugin
 {
@@ -73,7 +74,9 @@ class Stat extends AbstractPlugin
      */
     public function handle($path, $flags)
     {
-        $metadata = $this->getWithMetadata($path);
+        $ignore = $flags & FlysystemStreamWrapper::STREAM_URL_IGNORE_SIZE ? ['size'] : [];
+
+        $metadata = $this->getWithMetadata($path, $ignore);
 
         // It's possible for getMetadata() to fail even if a file exists.
         if (empty($metadata)) {
@@ -86,11 +89,14 @@ class Stat extends AbstractPlugin
     /**
      * Returns metadata.
      *
-     * @param string $path
+     * @param string $path The path to get metadata for.
+     * @param array  $ignore Metadata to ignore.
      *
-     * @return array
+     * @return array The metadata as returned by Filesystem::getMetadata().
+     *
+     * @see \League\Flysystem\Filesystem::getMetadata()
      */
-    protected function getWithMetadata($path)
+    protected function getWithMetadata($path, array $ignore)
     {
         $metadata = $this->filesystem->getMetadata($path);
 
@@ -98,7 +104,7 @@ class Stat extends AbstractPlugin
             return [];
         }
 
-        $keys = array_diff($this->required, array_keys($metadata));
+        $keys = array_diff($this->required, array_keys($metadata), $ignore);
 
         foreach ($keys as $key) {
             $method = 'get' . ucfirst($key);

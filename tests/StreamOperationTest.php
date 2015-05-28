@@ -349,6 +349,19 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
         $this->assertFileContent('new_file.txt', '12345');
     }
 
+    public function testFstat()
+    {
+        // Open handle in write mode so that the file doesn't exist.
+        $handle = fopen('flysystem://file.txt', 'w');
+        fwrite($handle, '1');
+
+        // Test that we can fstat() a non-existant remote file.
+        $stat = fstat($handle);
+        $this->assertSame(1, $stat['size']);
+
+        fclose($handle);
+    }
+
     /**
      * @expectedException PHPUnit_Framework_Error_Warning
      * @expectedExceptionMessage fopen(flysystem://new_file.txt): failed to open stream: File exists

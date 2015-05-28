@@ -19,6 +19,13 @@ use Twistor\Flysystem\Plugin\Touch;
 class FlysystemStreamWrapper
 {
     /**
+     * A flag to tell FlysystemStreamWrapper::url_stat() to ignore the size.
+     *
+     * @var int
+     */
+    const STREAM_URL_IGNORE_SIZE = 7;
+
+    /**
      * The registered filesystems.
      *
      * @var \League\Flysystem\FilesystemInterface[]
@@ -515,13 +522,26 @@ class FlysystemStreamWrapper
     /**
      * Retrieves information about a file resource.
      *
-     * @return array A similar array to stat().
+     * @return array A similar array to fstat().
      *
-     * @see stat()
+     * @see fstat()
      */
     public function stream_stat()
     {
-        return fstat($this->handle);
+        // Get metadata from original file.
+        $stat = $this->url_stat($this->uri, static::STREAM_URL_IGNORE_SIZE) ?: [];
+
+        // Newly created file.
+        if (empty($stat['mode'])) {
+            $stat['mode'] = 0100000 + $this->getConfiguration('permissions')['file']['public'];
+            $stat[2] = $stat['mode'];
+        }
+
+        // Use the size of our handle, since it could have been written to or
+        // truncated.
+        $stat['size'] = $stat[7] = fstat($this->handle)['size'];
+
+        return $stat;
     }
 
     /**
