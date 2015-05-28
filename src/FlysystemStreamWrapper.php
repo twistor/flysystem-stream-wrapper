@@ -644,6 +644,9 @@ class FlysystemStreamWrapper
             return $this->getFilesystem()->stat($this->getTarget(), $flags);
         } catch (FileNotFoundException $e) {
             // File doesn't exist.
+            if (!($flags & STREAM_URL_STAT_QUIET)) {
+                $this->triggerError('stat', [$uri], $e);
+            }
         }
 
         return false;

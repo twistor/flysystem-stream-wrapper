@@ -53,6 +53,16 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
         $this->assertFalse(chown('flysystem://touched', 'asfasf'));
     }
 
+    /**
+     * @expectedException PHPUnit_Framework_Error_Warning
+     * @expectedExceptionMessage stat(flysystem://file.txt): No such file or directory
+     */
+    public function testFailedStat()
+    {
+        $this->assertFalse(@stat('flysystem://file.txt'));
+        stat('flysystem://file.txt');
+    }
+
     public function testChmod()
     {
         $this->putContent('file.txt', 'contents');
