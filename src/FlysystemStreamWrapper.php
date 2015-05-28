@@ -23,7 +23,7 @@ class FlysystemStreamWrapper
      *
      * @var int
      */
-    const STREAM_URL_IGNORE_SIZE = 7;
+    const STREAM_URL_IGNORE_SIZE = 8;
 
     /**
      * The registered filesystems.
@@ -529,7 +529,7 @@ class FlysystemStreamWrapper
     public function stream_stat()
     {
         // Get metadata from original file.
-        $stat = $this->url_stat($this->uri, static::STREAM_URL_IGNORE_SIZE) ?: [];
+        $stat = $this->url_stat($this->uri, static::STREAM_URL_IGNORE_SIZE | STREAM_URL_STAT_QUIET) ?: [];
 
         // Newly created file.
         if (empty($stat['mode'])) {

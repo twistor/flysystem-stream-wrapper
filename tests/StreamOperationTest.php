@@ -55,7 +55,6 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException PHPUnit_Framework_Error_Warning
-     * @expectedExceptionMessage stat(flysystem://file.txt): No such file or directory
      */
     public function testFailedStat()
     {
