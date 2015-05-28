@@ -399,11 +399,11 @@ class FlysystemStreamWrapper
         $normalized = $this->getProtocol() . '://' . Util::normalizePath($this->getTarget());
 
         // Relay the lock to a real filesystem lock.
-        // We should make this pluggable, for instance, database locks.
-        $lockfile = sys_get_temp_dir() . '/' . sha1($normalized);
+        $lockfile = sys_get_temp_dir() . '/flysystem-stream-wrapper-' . sha1($normalized) . '.lock';
         $handle = fopen($lockfile, 'w');
         $success = flock($handle, $operation);
         fclose($handle);
+
         return $success;
     }
 
