@@ -513,6 +513,7 @@ class FlysystemStreamWrapper
                 return  stream_set_timeout($this->handle, $arg1, $arg2);
 
             case STREAM_OPTION_WRITE_BUFFER:
+                $this->ensureWritableHandle();
                 return stream_set_write_buffer($this->handle, $arg2) === 0;
         }
 
@@ -570,11 +571,7 @@ class FlysystemStreamWrapper
             return false;
         }
         $this->needsFlush = true;
-
-        if ($this->isCow) {
-            $this->isCow = false;
-            $this->handle = $this->cloneStream($this->handle);
-        }
+        $this->ensureWritableHandle();
 
         return ftruncate($this->handle, $new_size);
     }
@@ -592,11 +589,7 @@ class FlysystemStreamWrapper
             return 0;
         }
         $this->needsFlush = true;
-
-        if ($this->isCow) {
-            $this->isCow = false;
-            $this->handle = $this->cloneStream($this->handle);
-        }
+        $this->ensureWritableHandle();
 
         // Enforce append semantics.
         if ($this->isAppendOnly) {
@@ -778,22 +771,22 @@ class FlysystemStreamWrapper
     /**
      * Clones a stream.
      *
-     * @param resource $handle The file handle to clone.
+     * @param resource $stream The file handle to clone.
      *
      * @return resource The cloned file handle.
      */
-    protected function cloneStream($handle)
+    protected function cloneStream($stream)
     {
-        $out = fopen('php://temp', 'w+b');
-        $pos = ftell($handle);
+        $cloned = fopen('php://temp', 'w+b');
+        $pos = (int) ftell($stream);
 
-        fseek($handle, 0);
-        stream_copy_to_stream($handle, $out);
-        fclose($handle);
+        Util::rewindStream($stream);
+        stream_copy_to_stream($stream, $cloned);
 
-        fseek($out, $pos);
+        fclose($stream);
+        fseek($cloned, $pos);
 
-        return $out;
+        return $cloned;
     }
 
     /**
@@ -819,6 +812,19 @@ class FlysystemStreamWrapper
         }
 
         return $mode[0] !== 'a';
+    }
+
+    /**
+     * Guarantees that the handle is writable.
+     */
+    protected function ensureWritableHandle()
+    {
+        if (!$this->isCow) {
+            return;
+        }
+
+        $this->isCow = false;
+        $this->handle = $this->cloneStream($this->handle);
     }
 
     /**
