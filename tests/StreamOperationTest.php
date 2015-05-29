@@ -5,6 +5,7 @@ namespace Twistor\Tests;
 use League\Flysystem\Adapter\Local;
 use League\Flysystem\Adapter\NullAdapter;
 use League\Flysystem\Filesystem;
+use Prophecy\Argument;
 use Twistor\FlysystemStreamWrapper;
 
 class StreamOperationTest extends \PHPUnit_Framework_TestCase
@@ -53,13 +54,26 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
         $this->assertFalse(chown('flysystem://touched', 'asfasf'));
     }
 
-    /**
-     * @expectedException PHPUnit_Framework_Error_Warning
-     */
     public function testFailedStat()
     {
+        // HHVM Doesn't support url_stat().
+        if (!defined('HHVM_VERSION')) {
+            $this->assertFalse(@stat('flysystem://file.txt'));
+            $this->assertWarning();
+        }
+    }
+
+    public function testFailedStat2()
+    {
+        $stat = $this->prophesize('Twistor\Flysystem\Plugin\Stat');
+        $stat->getMethod()->willReturn('stat');
+        $stat->setFilesystem(Argument::cetera())->willReturn(true);
+        $stat->handle(Argument::cetera())->willThrow(new \Exception('stat failed'));
+
+        $this->filesystem->addPlugin($stat->reveal());
+
         $this->assertFalse(@stat('flysystem://file.txt'));
-        stat('flysystem://file.txt');
+        $this->assertWarning('stat failed');
     }
 
     public function testChmod()
@@ -72,6 +86,20 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
 
         $this->assertTrue(chmod('flysystem://file.txt', 0333));
         $this->assertPerm('file.txt', 0700);
+    }
+
+    public function testFailedChmod()
+    {
+        $filesystem = $this->prophesize('League\Flysystem\Filesystem');
+        $filesystem->setVisibility(Argument::cetera())->willThrow(new \Exception('chmod failed'));
+        $filesystem->addPlugin(Argument::cetera())->willReturn(true);
+
+        FlysystemStreamWrapper::register('fail', $filesystem->reveal());
+
+        $this->assertFalse(@chmod('fail://path', 0777));
+        $this->assertWarning('chmod failed');
+
+        FlysystemStreamWrapper::unregister('fail');
     }
 
     public function testUnlink()
@@ -108,53 +136,37 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue(is_dir('flysystem://dir2'));
     }
 
-    /**
-     * @expectedException PHPUnit_Framework_Error_Warning
-     * @expectedExceptionMessage rename(flysystem://file,flysystem://dir): Is a directory
-     */
     public function testRenameFileToDir()
     {
         // Test overwriting directory with file.
         mkdir('flysystem://dir');
         touch('flysystem://file');
         $this->assertFalse(@rename('flysystem://file', 'flysystem://dir'));
-        rename('flysystem://file', 'flysystem://dir');
+        $this->assertWarning('rename(): Is a directory');
     }
 
-    /**
-     * @expectedException PHPUnit_Framework_Error_Warning
-     * @expectedExceptionMessage rename(flysystem://dir,flysystem://file): Not a directory
-     */
     public function testRenameDirToFile()
     {
         // Test overwriting directory with file.
         mkdir('flysystem://dir');
         touch('flysystem://file');
         $this->assertFalse(@rename('flysystem://dir', 'flysystem://file'));
-        rename('flysystem://dir', 'flysystem://file');
+        $this->assertWarning('rename(): Not a directory');
     }
 
-    /**
-     * @expectedException PHPUnit_Framework_Error_Warning
-     * @expectedExceptionMessage rename(flysystem://dir1,flysystem://dir2): Directory not empty
-     */
     public function testRenameDirNotEmpty()
     {
         $this->assertTrue(mkdir('flysystem://dir1'));
         $this->assertTrue(mkdir('flysystem://dir2/boo', 0777, true));
         $this->assertFalse(@rename('flysystem://dir1', 'flysystem://dir2'));
-        rename('flysystem://dir1', 'flysystem://dir2');
+        $this->assertWarning('rename(): Directory not empty');
     }
 
-    /**
-     * @expectedException PHPUnit_Framework_Error_Warning
-     * @expectedExceptionMessage rename(flysystem://file,flysystem://dir/file): No such file or directory
-     */
     public function testRenameNoSubDir()
     {
         $this->assertTrue(touch('flysystem://file'));
         $this->assertFalse(@rename('flysystem://file', 'flysystem://dir/file'));
-        rename('flysystem://file', 'flysystem://dir/file');
+        $this->assertWarning('rename(): No such file or directory');
     }
 
     public function testRmdirMkdir()
@@ -170,35 +182,24 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
         $this->assertFalse(is_dir($this->testDir . '/one/two/three'));
     }
 
-    /**
-     * @expectedException PHPUnit_Framework_Error_Warning
-     * @expectedExceptionMessage mkdir(flysystem://one/two): No such file or directory
-     */
     public function testMkdirFail()
     {
-        mkdir('flysystem://one/two', 0777);
+        $this->assertFalse(@mkdir('flysystem://one/two', 0777));
+        $this->assertWarning('mkdir(): No such file or directory');
     }
 
-    /**
-     * @expectedException PHPUnit_Framework_Error_Warning
-     * @expectedExceptionMessage rmdir(flysystem://one): Directory not empty
-     */
     public function testRmdirFail()
     {
         $this->assertTrue(mkdir('flysystem://one/two', 0777, STREAM_MKDIR_RECURSIVE));
-        rmdir('flysystem://one');
+        $this->assertFalse(@rmdir('flysystem://one'));
+        $this->assertWarning('rmdir(): Directory not empty');
     }
 
-    /**
-     * @expectedException PHPUnit_Framework_Error_Warning
-     * @expectedExceptionMessage rmdir(flysystem://): Cannot remove the root directory
-     */
     public function testRemoveRoot()
     {
         // Test without STREAM_REPORT_ERRORS.
         $this->assertFalse(@rmdir('flysystem://'));
-
-        rmdir('flysystem://');
+        $this->assertWarning('rmdir(): Cannot remove the root directory');
     }
 
     public function testTruncateTellAndSeek()
@@ -271,6 +272,20 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
         $this->assertSame(readdir($dir), 'one');
 
         closedir($dir);
+    }
+
+    public function testDirectoryIterationFail()
+    {
+        $filesystem = $this->prophesize('League\Flysystem\Filesystem');
+        $filesystem->listContents('path')->willThrow(new \Exception());
+        $filesystem->addPlugin(Argument::cetera())->willReturn(true);
+
+        FlysystemStreamWrapper::register('fail', $filesystem->reveal());
+
+        @opendir('fail://path');
+        $this->assertWarning();
+
+        FlysystemStreamWrapper::unregister('fail');
     }
 
     public function testDirectoryIterationRoot()
@@ -358,6 +373,38 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
         $this->assertFileContent('new_file.txt', '12345');
     }
 
+    public function testXMode()
+    {
+        $handle = fopen('flysystem://new_file.txt', 'x+');
+        $this->assertSame(5, fwrite($handle, '12345'));
+        fclose($handle);
+        $this->assertFileContent('new_file.txt', '12345');
+
+        // Returns false.
+        $this->assertFalse(@fopen('flysystem://new_file.txt', 'x+'));
+        $this->assertWarning('failed to open stream');
+    }
+
+    public function testFailedOpen()
+    {
+        $filesystem = $this->prophesize('League\Flysystem\Filesystem');
+        $filesystem->has(Argument::cetera())->willThrow(new \Exception('xmode failed'));
+        $filesystem->addPlugin(Argument::cetera())->willReturn(true);
+
+        FlysystemStreamWrapper::register('fail', $filesystem->reveal());
+
+        $this->assertFalse(@fopen('fail://test.txt', 'x+'));
+        $this->assertWarning();
+
+        FlysystemStreamWrapper::unregister('fail');
+    }
+
+    public function testInvalidMode()
+    {
+        $this->assertFalse(@fopen('flysystem://test_file.txt', 'i'));
+        $this->assertWarning();
+    }
+
     public function testFstat()
     {
         // Open handle in write mode so that the file doesn't exist.
@@ -371,65 +418,33 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
         fclose($handle);
     }
 
-    /**
-     * @expectedException PHPUnit_Framework_Error_Warning
-     * @expectedExceptionMessage fopen(flysystem://new_file.txt): failed to open stream: File exists
-     */
-    public function testXMode()
-    {
-        $handle = fopen('flysystem://new_file.txt', 'x+');
-        $this->assertSame(5, fwrite($handle, '12345'));
-        fclose($handle);
-        $this->assertFileContent('new_file.txt', '12345');
-
-        // Returns false.
-        $this->assertFalse(@fopen('flysystem://new_file.txt', 'x+'));
-        // Throws warning.
-        fopen('flysystem://new_file.txt', 'x+');
-    }
-
-    /**
-     * @expectedException PHPUnit_Framework_Error_Warning
-     */
-    public function testInvalidMode()
-    {
-        $this->assertFalse(fopen('flysystem://test_file.txt', 'i'));
-    }
-
     public function testWriteEmptyFile()
     {
         $this->putContent('file', '');
         $this->assertWrapperFileExists('file');
     }
 
-    /**
-     * @expectedException PHPUnit_Framework_Error_Warning
-     * @expectedExceptionMessage unlink(flysystem://asdfasdfasf): No such file or directory
-     */
     public function testFailedUnlink()
     {
         $this->assertFalse(@unlink('flysystem://asdfasdfasf'));
-        unlink('flysystem://asdfasdfasf');
+        $this->assertWarning('unlink(): No such file or directory');
     }
 
-    /**
-     * @expectedException PHPUnit_Framework_Error_Warning
-     * @expectedExceptionMessage rename(flysystem://test_file1.txt,flysystem://test_file3.txt): No such file or directory
-     */
     public function testBadRename()
     {
         $this->assertFalse(@rename('flysystem://test_file1.txt', 'flysystem://test_file3.txt'));
-        rename('flysystem://test_file1.txt', 'flysystem://test_file3.txt');
+        $this->assertWarning('rename(): No such file or directory');
     }
 
-    /**
-     * @expectedException PHPUnit_Framework_Error_Warning
-     * @expectedExceptionMessage fopen(flysystem://doesnotexist): failed to open stream: No such file or directory
-     */
     public function testReadMissing()
     {
         $this->assertFalse(@fopen('flysystem://doesnotexist', 'rbt'));
-        fopen('flysystem://doesnotexist', 'rbt');
+
+        if (defined('HHVM_VERSION')) {
+            $this->assertWarning('fopen(): No such file or directory');
+        } else {
+            $this->assertWarning('failed to open stream');
+        }
     }
 
     protected function assertFileContent($path, $content)
@@ -463,5 +478,16 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
         $fileperm = fileperms($this->testDir . '/' . $file);
 
         $this->assertSame($perm, octdec(substr(decoct($fileperm), -4)));
+    }
+
+    protected function assertWarning($message = null)
+    {
+        $warning = error_get_last();
+
+        $this->assertTrue(!empty($warning), 'Warning found.');
+
+        if ($message) {
+            $this->assertTrue(strpos($warning['message'], $message) !== false, 'error message found');
+        }
     }
 }

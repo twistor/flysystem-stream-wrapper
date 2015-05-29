@@ -8,8 +8,8 @@ class TriggerErrorException extends Exception
 {
     protected $defaultMessage;
 
-    public function formatMessage(array $args)
+    public function formatMessage($function)
     {
-        return vsprintf($this->message ? $this->message : $this->defaultMessage, $args);
+        return sprintf($this->message ? $this->message : $this->defaultMessage, $function);
     }
 }

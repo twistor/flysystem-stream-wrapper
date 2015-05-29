@@ -7,6 +7,9 @@
          stopOnFailure="false"
          syntaxCheck="true"
          verbose="true"
+         convertErrorsToExceptions="false"
+         convertNoticesToExceptions="false"
+         convertWarningsToExceptions="false"
 >
     <testsuites>
         <testsuite name="Flysystem stream wrapper tests">

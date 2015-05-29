@@ -226,7 +226,12 @@ class FlysystemStreamWrapper
         $this->uri = $uri;
 
         $path = Util::normalizePath($this->getTarget());
-        $this->listing = $this->getFilesystem()->listContents($path);
+
+        $this->listing = $this->invoke('listContents', [$path], 'opendir');
+
+        if ($this->listing === false) {
+            return false;
+        }
 
         if (!$dirlen = strlen($path)) {
             return true;
@@ -283,14 +288,7 @@ class FlysystemStreamWrapper
     {
         $this->uri = $uri;
 
-        try {
-            return $this->getFilesystem()->mkdir($this->getTarget(), $mode, $options);
-
-        } catch (\Exception $e) {
-            $this->triggerError('mkdir', [$uri], $e);
-        }
-
-        return false;
+        return $this->invoke('mkdir', [$this->getTarget(), $mode, $options]);
     }
 
     /**
@@ -304,15 +302,9 @@ class FlysystemStreamWrapper
     public function rename($uri_from, $uri_to)
     {
         $this->uri = $uri_from;
+        $args = [$this->getTarget($uri_from), $this->getTarget($uri_to)];
 
-        try {
-            return $this->getFilesystem()->forcedRename($this->getTarget($uri_from), $this->getTarget($uri_to));
-
-        } catch (\Exception $e) {
-            $this->triggerError('rename', [$uri_from, $uri_to], $e);
-        }
-
-        return false;
+        return $this->invoke('forcedRename', $args, 'rename');
     }
 
     /**
@@ -327,14 +319,7 @@ class FlysystemStreamWrapper
     {
         $this->uri = $uri;
 
-        try {
-            return $this->getFilesystem()->rmdir($this->getTarget(), $options);
-
-        } catch (\Exception $e) {
-            $this->triggerError('rmdir', [$uri], $e);
-        }
-
-        return false;
+        return $this->invoke('rmdir', [$this->getTarget(), $options]);
     }
 
     /**
@@ -377,10 +362,13 @@ class FlysystemStreamWrapper
         if (!$this->needsFlush) {
             return true;
         }
+
         // Calling putStream() will rewind our handle. flush() shouldn't change
         // the position of the file.
         $pos = ftell($this->handle);
-        $success = $this->getFilesystem()->putStream($this->getTarget(), $this->handle);
+
+        $args = [$this->getTarget(), $this->handle];
+        $success = $this->invoke('putStream', $args, 'fflush');
 
         fseek($this->handle, $pos);
 
@@ -429,9 +417,15 @@ class FlysystemStreamWrapper
 
                 try {
                     return $this->getFilesystem()->setVisibility($this->getTarget(), $visibility);
+
                 } catch (\LogicException $e) {
                     // The adapter doesn't support visibility.
+
+                } catch (\Exception $e) {
+                    $this->triggerError('chmod', $e);
+                    return false;
                 }
+
                 return true;
 
             case STREAM_META_TOUCH:
@@ -461,7 +455,13 @@ class FlysystemStreamWrapper
         $this->isWriteOnly = StreamUtil::modeIsWriteOnly($mode);
         $this->isAppendMode = StreamUtil::modeIsAppendable($mode);
 
-        $this->handle = $this->getStream($path, $mode);
+        try {
+            $this->handle = $this->getStream($path, $mode);
+
+        } catch (\Exception $e) {
+            $this->triggerError('fopen', $e);
+            return false;
+        }
 
         if ($this->handle && $options & STREAM_USE_PATH) {
             $opened_path = $path;
@@ -615,13 +615,7 @@ class FlysystemStreamWrapper
     {
         $this->uri = $uri;
 
-        try {
-            return $this->getFilesystem()->delete($this->getTarget());
-        } catch (\Exception $e) {
-            $this->triggerError('unlink', [$uri], $e);
-        }
-
-        return false;
+        return $this->invoke('delete', [$this->getTarget()], 'unlink');
     }
 
     /**
@@ -640,11 +634,15 @@ class FlysystemStreamWrapper
 
         try {
             return $this->getFilesystem()->stat($this->getTarget(), $flags);
+
         } catch (FileNotFoundException $e) {
             // File doesn't exist.
             if (!($flags & STREAM_URL_STAT_QUIET)) {
-                $this->triggerError('stat', [$uri], $e);
+                $this->triggerError('stat', $e);
             }
+
+        } catch (\Exception $e) {
+            $this->triggerError('stat', $e);
         }
 
         return false;
@@ -691,13 +689,7 @@ class FlysystemStreamWrapper
      */
     protected function getReadStream($path, $mode)
     {
-        try {
-            $handle = $this->getFilesystem()->readStream($path);
-        } catch (FileNotFoundException $e) {
-            trigger_error(sprintf('fopen(%s): failed to open stream: No such file or directory', $this->uri), E_USER_WARNING);
-            return false;
-        }
-
+        $handle = $this->invoke('readStream', [$path], 'fopen');
         $this->needsCowCheck = true;
 
         return $handle;
@@ -838,32 +830,54 @@ class FlysystemStreamWrapper
     }
 
     /**
+     * Calls a method on the filesystem.
+     *
+     * @param string      $method    The method name.
+     * @param array       $args      The arguments to the method.
+     * @param string|null $errorname The name of the calling function.
+     *
+     * @return bool True on success, false on failure.
+     */
+    protected function invoke($method, array $args, $errorname = null)
+    {
+        $filesystem = $this->getFilesystem();
+
+        try {
+            return call_user_func_array([$filesystem, $method], $args);
+        }
+
+        catch (\Exception $e) {
+            $errorname = $errorname ?: $method;
+            $this->triggerError($errorname, $e);
+        }
+
+        return false;
+    }
+
+    /**
      * Calls trigger_error(), printing the appropriate message.
      *
      * @param string     $function
-     * @param string[]   $args
      * @param \Exception $e
      */
-    protected function triggerError($function, array $args, \Exception $e)
+    protected function triggerError($function, \Exception $e)
     {
-        $vars = [$function, implode(',', $args)];
-
         if ($e instanceof TriggerErrorException) {
-            trigger_error($e->formatMessage($vars), E_USER_WARNING);
+            trigger_error($e->formatMessage($function), E_USER_WARNING);
             return;
         }
 
         switch (get_class($e)) {
             case 'League\Flysystem\FileNotFoundException':
-                trigger_error(vsprintf('%s(%s): No such file or directory', $vars), E_USER_WARNING);
+                trigger_error(sprintf('%s(): No such file or directory', $function), E_USER_WARNING);
                 return;
 
             case 'League\Flysystem\RootViolationException':
-                trigger_error(vsprintf('%s(%s): Cannot remove the root directory', $vars), E_USER_WARNING);
+                trigger_error(sprintf('%s(): Cannot remove the root directory', $function), E_USER_WARNING);
                 return;
         }
 
-        // Throw any unhandled exceptions.
-        throw $e;
+        // Don't allow any exceptions to leak.
+        trigger_error($e->getMessage(), E_USER_WARNING);
     }
 }

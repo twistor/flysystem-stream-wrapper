@@ -24,18 +24,6 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
         $this->assertFalse(FlysystemStreamWrapper::unregister('test'));
     }
 
-    /**
-     * @expectedException \Exception
-     */
-    public function testTriggerError()
-    {
-        $wrapper = new FlysystemStreamWrapper();
-
-        $method = new \ReflectionMethod($wrapper, 'triggerError');
-        $method->setAccessible(TRUE);
-        $method->invokeArgs($wrapper, ['function', [], new \Exception()]);
-    }
-
     public function testNoVisibility()
     {
         $filesystem = new Filesystem(new NoVisibilityLocal(sys_get_temp_dir()));
