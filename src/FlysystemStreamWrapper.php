@@ -821,19 +821,19 @@ class FlysystemStreamWrapper
     /**
      * Calls a method on an object, catching any exceptions.
      *
+     * @param object      $objet     The object to call the method on.
      * @param string      $method    The method name.
      * @param array       $args      The arguments to the method.
      * @param string|null $errorname The name of the calling function.
      *
-     * @return bool True on success, false on failure.
+     * @return mixed|false The return value of the call, or false on failure.
      */
     protected function invoke($objet, $method, array $args, $errorname = null)
     {
         try {
             return call_user_func_array([$objet, $method], $args);
-        }
 
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             $errorname = $errorname ?: $method;
             $this->triggerError($errorname, $e);
         }
