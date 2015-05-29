@@ -17,6 +17,8 @@ class StreamOperationTest extends ProphecyTestCase
 
     public function setUp()
     {
+        parent::setUp();
+
         $this->testDir = __DIR__ . '/testdir';
 
         $filesystem = new Filesystem(new Local(__DIR__));
@@ -29,6 +31,8 @@ class StreamOperationTest extends ProphecyTestCase
 
     public function tearDown()
     {
+        parent::tearDown();
+
         FlysystemStreamWrapper::unregister('flysystem');
         $filesystem = new Filesystem(new Local(__DIR__));
         $filesystem->deleteDir('testdir');
