@@ -227,7 +227,7 @@ class FlysystemStreamWrapper
 
         $path = Util::normalizePath($this->getTarget());
 
-        $this->listing = $this->invoke('listContents', [$path], 'opendir');
+        $this->listing = $this->invoke($this->getFilesystem(), 'listContents', [$path], 'opendir');
 
         if ($this->listing === false) {
             return false;
@@ -288,7 +288,7 @@ class FlysystemStreamWrapper
     {
         $this->uri = $uri;
 
-        return $this->invoke('mkdir', [$this->getTarget(), $mode, $options]);
+        return $this->invoke($this->getFilesystem(), 'mkdir', [$this->getTarget(), $mode, $options]);
     }
 
     /**
@@ -304,7 +304,7 @@ class FlysystemStreamWrapper
         $this->uri = $uri_from;
         $args = [$this->getTarget($uri_from), $this->getTarget($uri_to)];
 
-        return $this->invoke('forcedRename', $args, 'rename');
+        return $this->invoke($this->getFilesystem(), 'forcedRename', $args, 'rename');
     }
 
     /**
@@ -319,7 +319,7 @@ class FlysystemStreamWrapper
     {
         $this->uri = $uri;
 
-        return $this->invoke('rmdir', [$this->getTarget(), $options]);
+        return $this->invoke($this->getFilesystem(), 'rmdir', [$this->getTarget(), $options]);
     }
 
     /**
@@ -368,7 +368,7 @@ class FlysystemStreamWrapper
         $pos = ftell($this->handle);
 
         $args = [$this->getTarget(), $this->handle];
-        $success = $this->invoke('putStream', $args, 'fflush');
+        $success = $this->invoke($this->getFilesystem(), 'putStream', $args, 'fflush');
 
         fseek($this->handle, $pos);
 
@@ -429,7 +429,7 @@ class FlysystemStreamWrapper
                 return true;
 
             case STREAM_META_TOUCH:
-                return $this->getFilesystem()->touch($this->getTarget());
+                return $this->invoke($this->getFilesystem(), 'touch', [$this->getTarget()]);
 
             default:
                 return false;
@@ -455,13 +455,7 @@ class FlysystemStreamWrapper
         $this->isWriteOnly = StreamUtil::modeIsWriteOnly($mode);
         $this->isAppendMode = StreamUtil::modeIsAppendable($mode);
 
-        try {
-            $this->handle = $this->getStream($path, $mode);
-
-        } catch (\Exception $e) {
-            $this->triggerError('fopen', $e);
-            return false;
-        }
+        $this->handle = $this->invoke($this, 'getStream', [$path, $mode], 'fopen');
 
         if ($this->handle && $options & STREAM_USE_PATH) {
             $opened_path = $path;
@@ -615,7 +609,7 @@ class FlysystemStreamWrapper
     {
         $this->uri = $uri;
 
-        return $this->invoke('delete', [$this->getTarget()], 'unlink');
+        return $this->invoke($this->getFilesystem(), 'delete', [$this->getTarget()], 'unlink');
     }
 
     /**
@@ -660,20 +654,20 @@ class FlysystemStreamWrapper
     {
         switch ($mode[0]) {
             case 'r':
-                return $this->getReadStream($path, $mode);
+                return $this->getReadStream($path);
 
             case 'w':
                 $this->needsFlush = true;
                 return fopen('php://temp', 'w+b');
 
             case 'a':
-                return $this->getAppendStream($path, $mode);
+                return $this->getAppendStream($path);
 
             case 'x':
-                return $this->getXStream($path, $mode);
+                return $this->getXStream($path);
 
             case 'c':
-                return $this->getWritableStream($path, $mode);
+                return $this->getWritableStream($path);
         }
 
         return false;
@@ -683,27 +677,24 @@ class FlysystemStreamWrapper
      * Returns a read-only stream for a given path and mode.
      *
      * @param string $path The path to open.
-     * @param string $mode The mode to open the stream in.
      *
      * @return resource|bool The file handle, or false.
      */
-    protected function getReadStream($path, $mode)
+    protected function getReadStream($path)
     {
-        $handle = $this->invoke('readStream', [$path], 'fopen');
         $this->needsCowCheck = true;
 
-        return $handle;
+        return $this->getFilesystem()->readStream($path);
     }
 
     /**
      * Returns a writable stream for a given path and mode.
      *
      * @param string $path The path to open.
-     * @param string $mode The mode to open the stream in.
      *
      * @return resource|bool The file handle, or false.
      */
-    protected function getWritableStream($path, $mode)
+    protected function getWritableStream($path)
     {
         try {
             $handle = $this->getFilesystem()->readStream($path);
@@ -721,13 +712,12 @@ class FlysystemStreamWrapper
      * Returns an appendable stream for a given path and mode.
      *
      * @param string $path The path to open.
-     * @param string $mode The mode to open the stream in.
      *
      * @return resource|bool The file handle, or false.
      */
-    protected function getAppendStream($path, $mode)
+    protected function getAppendStream($path)
     {
-        if ($handle = $this->getWritableStream($path, $mode)) {
+        if ($handle = $this->getWritableStream($path)) {
             StreamUtil::trySeek($handle, 0, SEEK_END);
         }
 
@@ -740,14 +730,13 @@ class FlysystemStreamWrapper
      * Triggers a warning if the file exists.
      *
      * @param string $path The path to open.
-     * @param string $mode The mode to open the stream in.
      *
      * @return resource|bool The file handle, or false.
      */
-    protected function getXStream($path, $mode)
+    protected function getXStream($path)
     {
         if ($this->getFilesystem()->has($path)) {
-            trigger_error(sprintf('fopen(%s): failed to open stream: File exists', $this->uri), E_USER_WARNING);
+            trigger_error('fopen(): failed to open stream: File exists', E_USER_WARNING);
 
             return false;
         }
@@ -830,7 +819,7 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * Calls a method on the filesystem.
+     * Calls a method on an object, catching any exceptions.
      *
      * @param string      $method    The method name.
      * @param array       $args      The arguments to the method.
@@ -838,12 +827,10 @@ class FlysystemStreamWrapper
      *
      * @return bool True on success, false on failure.
      */
-    protected function invoke($method, array $args, $errorname = null)
+    protected function invoke($objet, $method, array $args, $errorname = null)
     {
-        $filesystem = $this->getFilesystem();
-
         try {
-            return call_user_func_array([$filesystem, $method], $args);
+            return call_user_func_array([$objet, $method], $args);
         }
 
         catch (\Exception $e) {

@@ -6,9 +6,10 @@ use League\Flysystem\Adapter\Local;
 use League\Flysystem\Adapter\NullAdapter;
 use League\Flysystem\Filesystem;
 use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTestCase;
 use Twistor\FlysystemStreamWrapper;
 
-class StreamOperationTest extends \PHPUnit_Framework_TestCase
+class StreamOperationTest extends ProphecyTestCase
 {
     protected $testDir;
 
