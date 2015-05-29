@@ -12,6 +12,7 @@ use Twistor\Flysystem\Plugin\Mkdir;
 use Twistor\Flysystem\Plugin\Rmdir;
 use Twistor\Flysystem\Plugin\Stat;
 use Twistor\Flysystem\Plugin\Touch;
+use Twistor\StreamUtil;
 
 /**
  * An adapter for Flysystem to a PHP stream wrapper.
@@ -74,18 +75,11 @@ class FlysystemStreamWrapper
     protected $handle;
 
     /**
-     * Whether the handle is in append-only mode.
+     * Whether the handle is in append mode.
      *
      * @var bool
      */
-    protected $isAppendOnly = false;
-
-    /**
-     * Whether this handle is copy-on-write.
-     *
-     * @var bool
-     */
-    protected $isCow = false;
+    protected $isAppendMode = false;
 
     /**
      * Whether the handle is read-only.
@@ -110,6 +104,13 @@ class FlysystemStreamWrapper
      * @var array
      */
     protected $listing;
+
+    /**
+     * Whether this handle has been verified writable.
+     *
+     * @var bool
+     */
+    protected $needsCowCheck = false;
 
     /**
      * Whether the handle should be flushed.
@@ -456,13 +457,17 @@ class FlysystemStreamWrapper
         $this->uri = $uri;
         $path = $this->getTarget();
 
+        $this->isReadOnly = StreamUtil::modeIsReadOnly($mode);
+        $this->isWriteOnly = StreamUtil::modeIsWriteOnly($mode);
+        $this->isAppendMode = StreamUtil::modeIsAppendable($mode);
+
         $this->handle = $this->getStream($path, $mode);
 
         if ($this->handle && $options & STREAM_USE_PATH) {
             $opened_path = $path;
         }
 
-        return (bool) $this->handle;
+        return is_resource($this->handle);
     }
 
     /**
@@ -540,7 +545,7 @@ class FlysystemStreamWrapper
 
         // Use the size of our handle, since it could have been written to or
         // truncated.
-        $stat['size'] = $stat[7] = fstat($this->handle)['size'];
+        $stat['size'] = $stat[7] = StreamUtil::getSize($this->handle);
 
         return $stat;
     }
@@ -552,7 +557,7 @@ class FlysystemStreamWrapper
      */
     public function stream_tell()
     {
-        if ($this->isAppendOnly) {
+        if ($this->isAppendMode) {
             return 0;
         }
         return ftell($this->handle);
@@ -592,8 +597,8 @@ class FlysystemStreamWrapper
         $this->ensureWritableHandle();
 
         // Enforce append semantics.
-        if ($this->isAppendOnly) {
-            fseek($this->handle, 0, SEEK_END);
+        if ($this->isAppendMode) {
+            StreamUtil::trySeek($this->handle, 0, SEEK_END);
         }
 
         return fwrite($this->handle, $data);
@@ -661,7 +666,6 @@ class FlysystemStreamWrapper
 
             case 'w':
                 $this->needsFlush = true;
-                $this->isWriteOnly = strpos($mode, '+') === false;
                 return fopen('php://temp', 'w+b');
 
             case 'a':
@@ -694,12 +698,8 @@ class FlysystemStreamWrapper
             return false;
         }
 
-        if (strpos($mode, '+') === false) {
-            $this->isReadOnly = true;
-            return $handle;
-        }
+        $this->needsCowCheck = true;
 
-        $this->isCow = !$this->handleIsWritable($handle);
         return $handle;
     }
 
@@ -715,13 +715,12 @@ class FlysystemStreamWrapper
     {
         try {
             $handle = $this->getFilesystem()->readStream($path);
-            $this->isCow = !$this->handleIsWritable($handle);
+            $this->needsCowCheck = true;
+
         } catch (FileNotFoundException $e) {
             $handle = fopen('php://temp', 'w+b');
             $this->needsFlush = true;
         }
-
-        $this->isWriteOnly = strpos($mode, '+') === false;
 
         return $handle;
     }
@@ -736,9 +735,8 @@ class FlysystemStreamWrapper
      */
     protected function getAppendStream($path, $mode)
     {
-        $this->isAppendOnly = true;
         if ($handle = $this->getWritableStream($path, $mode)) {
-            fseek($handle, 0, SEEK_END);
+            StreamUtil::trySeek($handle, 0, SEEK_END);
         }
 
         return $handle;
@@ -763,55 +761,8 @@ class FlysystemStreamWrapper
         }
 
         $this->needsFlush = true;
-        $this->isWriteOnly = strpos($mode, '+') === false;
 
         return fopen('php://temp', 'w+b');
-    }
-
-    /**
-     * Clones a stream.
-     *
-     * @param resource $stream The file handle to clone.
-     *
-     * @return resource The cloned file handle.
-     */
-    protected function cloneStream($stream)
-    {
-        $cloned = fopen('php://temp', 'w+b');
-        $pos = (int) ftell($stream);
-
-        Util::rewindStream($stream);
-        stream_copy_to_stream($stream, $cloned);
-
-        fclose($stream);
-        fseek($cloned, $pos);
-
-        return $cloned;
-    }
-
-    /**
-     * Determines if a file handle is writable.
-     *
-     * Most adapters return the read stream as a tempfile or a php temp stream.
-     * For performance, avoid copying the temp stream if it is writable.
-     *
-     * @param resource|bool $handle A file handle.
-     *
-     * @return bool True if writable, false if not.
-     */
-    protected function handleIsWritable($handle)
-    {
-        if (!$handle) {
-            return false;
-        }
-
-        $mode = stream_get_meta_data($handle)['mode'];
-
-        if ($mode[0] === 'r') {
-            return strpos($mode, '+') === 1;
-        }
-
-        return $mode[0] !== 'a';
     }
 
     /**
@@ -819,12 +770,17 @@ class FlysystemStreamWrapper
      */
     protected function ensureWritableHandle()
     {
-        if (!$this->isCow) {
+        if (!$this->needsCowCheck) {
             return;
         }
 
-        $this->isCow = false;
-        $this->handle = $this->cloneStream($this->handle);
+        $this->needsCowCheck = false;
+
+        if (StreamUtil::isWritable($this->handle)) {
+            return;
+        }
+
+        $this->handle = StreamUtil::copy($this->handle);
     }
 
     /**

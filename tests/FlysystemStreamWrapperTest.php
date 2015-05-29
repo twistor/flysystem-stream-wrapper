@@ -36,15 +36,6 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
         $method->invokeArgs($wrapper, ['function', [], new \Exception()]);
     }
 
-    public function testHandleIsWritable()
-    {
-        $wrapper = new FlysystemStreamWrapper();
-
-        $method = new \ReflectionMethod($wrapper, 'handleIsWritable');
-        $method->setAccessible(TRUE);
-        $this->assertFalse($method->invokeArgs($wrapper, [false]));
-    }
-
     public function testNoVisibility()
     {
         $filesystem = new Filesystem(new NoVisibilityLocal(sys_get_temp_dir()));
