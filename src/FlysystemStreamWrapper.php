@@ -339,6 +339,11 @@ class FlysystemStreamWrapper
      */
     public function stream_close()
     {
+        // PHP 7 doesn't call flush automatically anymore for truncate() or when
+        // writing an empty file. We need to ensure that the handle gets pushed
+        // as needed in that case. This will be a no-op for php 5.
+        $this->stream_flush();
+
         fclose($this->handle);
     }
 
@@ -371,6 +376,8 @@ class FlysystemStreamWrapper
         $success = $this->invoke($this->getFilesystem(), 'putStream', $args, 'fflush');
 
         fseek($this->handle, $pos);
+
+        $this->needsFlush = !$success;
 
         return $success;
     }
