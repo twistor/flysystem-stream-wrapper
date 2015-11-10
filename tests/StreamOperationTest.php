@@ -267,9 +267,14 @@ class StreamOperationTest extends ProphecyTestCase
         mkdir('flysystem://root/three');
 
         $dir = opendir('flysystem://root');
-        $this->assertSame('one', readdir($dir));
-        $this->assertSame('two', readdir($dir));
-        $this->assertSame('three', readdir($dir));
+        $dirs = [
+            readdir($dir),
+            readdir($dir),
+            readdir($dir),
+        ];
+        $this->assertTrue(in_array('one', $dirs));
+        $this->assertTrue(in_array('two', $dirs));
+        $this->assertTrue(in_array('three', $dirs));
 
         $this->assertFalse(readdir($dir));
 
@@ -300,9 +305,14 @@ class StreamOperationTest extends ProphecyTestCase
         mkdir('flysystem://three');
 
         $dir = opendir('flysystem://');
-        $this->assertSame('one', readdir($dir));
-        $this->assertSame('two', readdir($dir));
-        $this->assertSame('three', readdir($dir));
+        $dirs = [
+            readdir($dir),
+            readdir($dir),
+            readdir($dir),
+        ];
+        $this->assertTrue(in_array('one', $dirs));
+        $this->assertTrue(in_array('two', $dirs));
+        $this->assertTrue(in_array('three', $dirs));
 
         $this->assertFalse(readdir($dir));
 
