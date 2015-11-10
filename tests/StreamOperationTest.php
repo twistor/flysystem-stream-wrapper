@@ -48,7 +48,7 @@ class StreamOperationTest extends ProphecyTestCase
         $this->assertTrue(is_dir('flysystem://test_dir'));
 
         // Test touch.
-        $this->assertTrue(touch('flysystem://touched'));
+        $this->assertTrue(touch('flysystem://touched', time()));
         $this->assertFileContent('touched', '');
 
         // Test touching an existing file.
@@ -236,12 +236,24 @@ class StreamOperationTest extends ProphecyTestCase
             return $this->setOptionHHVM();
         }
 
-        $handle = fopen('flysystem://thing', 'w+');
+        $handle = fopen('flysystem://test_file.txt', 'w+');
+        fwrite($handle, 'aa');
+        rewind($handle);
 
+        $this->assertTrue(stream_set_blocking($handle, 1));
         $this->assertTrue(stream_set_blocking($handle, 0));
-        $this->assertFalse(stream_set_timeout($handle, 10));
-        $this->assertSame(-1, stream_set_write_buffer($handle, 100));
 
+        $this->assertFalse(stream_set_timeout($handle, 10));
+
+        $this->assertSame(0, stream_set_read_buffer($handle, 0));
+        $this->assertSame(0, stream_set_read_buffer($handle, 5));
+
+        fclose($handle);
+
+        $handle = fopen('flysystem://test_file2.txt', 'w+');
+        stream_set_write_buffer($handle, 1);
+        fwrite($handle, 'aa');
+        $this->assertFileContent('test_file2.txt', 'aa');
         fclose($handle);
 
         // Test fallthough. Just code coverage nonsense.

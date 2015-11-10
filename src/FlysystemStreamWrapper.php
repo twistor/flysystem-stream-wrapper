@@ -61,6 +61,13 @@ class FlysystemStreamWrapper
     ];
 
     /**
+     * The number of bytes that have been written since the last flush.
+     *
+     * @var int
+     */
+    protected $bytesWritten = 0;
+
+    /**
      * The filesystem of the current stream wrapper.
      *
      * @var \League\Flysystem\FilesystemInterface
@@ -118,6 +125,13 @@ class FlysystemStreamWrapper
      * @var bool
      */
     protected $needsFlush = false;
+
+    /**
+     * If stream_set_write_buffer() is called, the arguments.
+     *
+     * @var int
+     */
+    protected $streamWriteBuffer;
 
     /**
      * Instance URI (stream).
@@ -368,6 +382,9 @@ class FlysystemStreamWrapper
             return true;
         }
 
+        $this->needsFlush = false;
+        $this->bytesWritten = 0;
+
         // Calling putStream() will rewind our handle. flush() shouldn't change
         // the position of the file.
         $pos = ftell($this->handle);
@@ -376,8 +393,6 @@ class FlysystemStreamWrapper
         $success = $this->invoke($this->getFilesystem(), 'putStream', $args, 'fflush');
 
         fseek($this->handle, $pos);
-
-        $this->needsFlush = !$success;
 
         return $success;
     }
@@ -513,14 +528,24 @@ class FlysystemStreamWrapper
     {
         switch ($option) {
             case STREAM_OPTION_BLOCKING:
+                // This works for the local adapter. It doesn't do anything for
+                // memory streams.
                 return stream_set_blocking($this->handle, $arg1);
 
             case STREAM_OPTION_READ_TIMEOUT:
                 return  stream_set_timeout($this->handle, $arg1, $arg2);
 
+            case STREAM_OPTION_READ_BUFFER:
+                if ($arg1 === STREAM_BUFFER_NONE) {
+                    return stream_set_read_buffer($this->handle, 0) === 0;
+                }
+
+                return stream_set_read_buffer($this->handle, $arg2) === 0;
+
             case STREAM_OPTION_WRITE_BUFFER:
-                $this->ensureWritableHandle();
-                return stream_set_write_buffer($this->handle, $arg2) === 0;
+                $this->streamWriteBuffer = $arg1 === STREAM_BUFFER_NONE ? 0 : $arg2;
+
+                return true;
         }
 
         return false;
@@ -602,7 +627,14 @@ class FlysystemStreamWrapper
             StreamUtil::trySeek($this->handle, 0, SEEK_END);
         }
 
-        return fwrite($this->handle, $data);
+        $written = fwrite($this->handle, $data);
+        $this->bytesWritten += $written;
+
+        if (isset($this->streamWriteBuffer) && $this->bytesWritten >= $this->streamWriteBuffer) {
+            $this->stream_flush();
+        }
+
+        return $written;
     }
 
     /**
@@ -661,7 +693,8 @@ class FlysystemStreamWrapper
     {
         switch ($mode[0]) {
             case 'r':
-                return $this->getReadStream($path);
+                $this->needsCowCheck = true;
+                return $this->getFilesystem()->readStream($path);
 
             case 'w':
                 $this->needsFlush = true;
@@ -678,20 +711,6 @@ class FlysystemStreamWrapper
         }
 
         return false;
-    }
-
-    /**
-     * Returns a read-only stream for a given path and mode.
-     *
-     * @param string $path The path to open.
-     *
-     * @return resource|bool The file handle, or false.
-     */
-    protected function getReadStream($path)
-    {
-        $this->needsCowCheck = true;
-
-        return $this->getFilesystem()->readStream($path);
     }
 
     /**
