@@ -813,7 +813,9 @@ class FlysystemStreamWrapper
             $uri = $this->uri;
         }
 
-        return substr($uri, strpos($uri, '://') + 3);
+        $target = substr($uri, strpos($uri, '://') + 3);
+
+        return $target === false ? '' : $target;
     }
 
     /**

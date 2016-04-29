@@ -74,6 +74,10 @@ class Stat extends AbstractPlugin
      */
     public function handle($path, $flags)
     {
+        if ($path === '') {
+            return $this->mergeMeta(['type' => 'dir', 'visibility' => AdapterInterface::VISIBILITY_PUBLIC]);
+        }
+
         $ignore = $flags & FlysystemStreamWrapper::STREAM_URL_IGNORE_SIZE ? ['size'] : [];
 
         $metadata = $this->getWithMetadata($path, $ignore);
