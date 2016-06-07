@@ -15,6 +15,17 @@ class StreamOperationTest extends ProphecyTestCase
 
     protected $filesystem;
 
+    protected $perms = [
+        'file' => [
+            'public' => 0744,
+            'private' => 0700,
+        ],
+        'dir' => [
+            'public' => 0755,
+            'private' => 0700,
+        ],
+    ];
+
     public function setUp()
     {
         parent::setUp();
@@ -25,7 +36,8 @@ class StreamOperationTest extends ProphecyTestCase
         $filesystem->deleteDir('testdir');
         $filesystem->createDir('testdir');
 
-        $this->filesystem = new Filesystem(new Local($this->testDir));
+        $local = new Local($this->testDir, \LOCK_EX, 0002, $this->perms);
+        $this->filesystem = new Filesystem($local);
         FlysystemStreamWrapper::register('flysystem', $this->filesystem);
     }
 
@@ -516,7 +528,7 @@ class StreamOperationTest extends ProphecyTestCase
     }
 
     protected function assertPerm($file, $perm) {
-        clearstatcache($this->testDir . '/' . $file);
+        clearstatcache(false);
 
         $fileperm = fileperms($this->testDir . '/' . $file);
 

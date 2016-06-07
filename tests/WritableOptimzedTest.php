@@ -17,7 +17,8 @@ class WritableOptimzedTest  extends StreamOperationTest
         $filesystem->deleteDir('testdir');
         $filesystem->createDir('testdir');
 
-        $this->filesystem = new Filesystem(new WritableLocal($this->testDir));
+        $writable = new WritableLocal($this->testDir, \LOCK_EX, 0002, $this->perms);
+        $this->filesystem = new Filesystem($writable);
         FlysystemStreamWrapper::register('flysystem', $this->filesystem);
     }
 }
