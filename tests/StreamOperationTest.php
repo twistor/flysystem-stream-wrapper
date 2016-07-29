@@ -238,6 +238,7 @@ class StreamOperationTest extends ProphecyTestCase
     {
         // There's not a good way to test this with a single process.
         $handle1 = fopen('flysystem://file', 'w');
+        $this->assertTrue(flock($handle1, LOCK_SH));
         $this->assertTrue(flock($handle1, LOCK_EX));
         $this->assertTrue(flock($handle1, LOCK_UN));
     }

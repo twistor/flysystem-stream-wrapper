@@ -416,22 +416,18 @@ class FlysystemStreamWrapper
         $operation = (int) $operation;
 
         if (($operation & \LOCK_UN) === \LOCK_UN) {
-            $success = flock($this->lockHandle, $operation);
-
-            fclose($this->lockHandle);
-
-            return $success;
+            return $this->releaseLock($operation);
         }
 
-        // Normalize paths so that locks are consistent.
-        $normalized = $this->getProtocol() . '://' . Util::normalizePath($this->getTarget());
+        // If the caller calls flock() twice, there's no reason to re-create the
+        // lock handle.
+        if (is_resource($this->lockHandle)) {
+            return flock($this->lockHandle, $operation);
+        }
 
-        // Relay the lock to a real filesystem lock.
-        $lockfile = sys_get_temp_dir() . '/flysystem-stream-wrapper-' . sha1($normalized) . '.lock';
+        $this->lockHandle = $this->openLockHandle();
 
-        $this->lockHandle = fopen($lockfile, 'c');
-
-        return flock($this->lockHandle, $operation);
+        return is_resource($this->lockHandle) && flock($this->lockHandle, $operation);
     }
 
     /**
@@ -910,5 +906,56 @@ class FlysystemStreamWrapper
 
         // Don't allow any exceptions to leak.
         trigger_error($e->getMessage(), E_USER_WARNING);
+    }
+
+    /**
+     * Creates an advisory lock handle.
+     *
+     * @return resource|false
+     */
+    protected function openLockHandle()
+    {
+        // We are using md5() to avoid the file name limits, and case
+        // insensitivity on Windows. This is not security sensitive.
+
+        // PHP allows periods, '.', to be scheme names. Normalize the scheme
+        // name to something that won't cause problems.
+        $sub_dir = md5($this->getProtocol());
+
+        // Since we're flattening out whole filesystems, at least create a
+        // sub-directory for each scheme to attempt to limit the number of files
+        // per directory.
+        $temp_dir = sys_get_temp_dir() . '/flysystem-stream-wrapper/' . $sub_dir;
+
+        // Race free directory creation. If @mkdir() fails, fopen() will fail
+        // later, so there's no reason to test again.
+        ! is_dir($temp_dir) && @mkdir($temp_dir, 0777, true);
+
+        // Normalize paths so that locks are consistent.
+        $lock_key = md5(Util::normalizePath($this->getTarget()));
+
+        // Relay the lock to a real filesystem lock.
+        return fopen($temp_dir . '/' . $lock_key, 'c');
+    }
+
+    /**
+     * Releases the advisory lock.
+     *
+     * @param int $operation
+     *
+     * @return bool
+     *
+     * @see FlysystemStreamWrapper::stream_lock()
+     */
+    protected function releaseLock($operation)
+    {
+        $exists = is_resource($this->lockHandle);
+
+        $success = $exists && flock($this->lockHandle, $operation);
+
+        $exists && fclose($this->lockHandle);
+        $this->lockHandle = null;
+
+        return $success;
     }
 }
