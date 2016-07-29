@@ -127,6 +127,13 @@ class FlysystemStreamWrapper
     protected $needsFlush = false;
 
     /**
+     * The handle used for calls to stream_lock.
+     *
+     * @var resource
+     */
+    protected $lockHandle;
+
+    /**
      * If stream_set_write_buffer() is called, the arguments.
      *
      * @var int
@@ -406,16 +413,25 @@ class FlysystemStreamWrapper
      */
     public function stream_lock($operation)
     {
+        $operation = (int) $operation;
+
+        if (($operation & \LOCK_UN) === \LOCK_UN) {
+            $success = flock($this->lockHandle, $operation);
+
+            fclose($this->lockHandle);
+
+            return $success;
+        }
+
         // Normalize paths so that locks are consistent.
         $normalized = $this->getProtocol() . '://' . Util::normalizePath($this->getTarget());
 
         // Relay the lock to a real filesystem lock.
         $lockfile = sys_get_temp_dir() . '/flysystem-stream-wrapper-' . sha1($normalized) . '.lock';
-        $handle = fopen($lockfile, 'w');
-        $success = flock($handle, $operation);
-        fclose($handle);
 
-        return $success;
+        $this->lockHandle = fopen($lockfile, 'c');
+
+        return flock($this->lockHandle, $operation);
     }
 
     /**
