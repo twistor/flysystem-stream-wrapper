@@ -915,16 +915,16 @@ class FlysystemStreamWrapper
      */
     protected function openLockHandle()
     {
-        // We are using md5() to avoid the file name limits, and case
-        // insensitivity on Windows. This is not security sensitive.
-
         // PHP allows periods, '.', to be scheme names. Normalize the scheme
-        // name to something that won't cause problems.
-        $sub_dir = md5($this->getProtocol());
+        // name to something that won't cause problems. Also, avoid problems
+        // with case-insensitive filesystems. We use bin2hex() rather than a
+        // hashing function since most scheme names are small, and bin2hex()
+        // only doubles the string length.
+        $sub_dir = bin2hex($this->getProtocol());
 
         // Since we're flattening out whole filesystems, at least create a
-        // sub-directory for each scheme to attempt to limit the number of files
-        // per directory.
+        // sub-directory for each scheme to attempt to reduce the number of
+        // files per directory.
         $temp_dir = sys_get_temp_dir() . '/flysystem-stream-wrapper/' . $sub_dir;
 
         // Race free directory creation. If @mkdir() fails, fopen() will fail
@@ -932,7 +932,9 @@ class FlysystemStreamWrapper
         ! is_dir($temp_dir) && @mkdir($temp_dir, 0777, true);
 
         // Normalize paths so that locks are consistent.
-        $lock_key = md5(Util::normalizePath($this->getTarget()));
+        // We are using sha1() to avoid the file name limits, and case
+        // insensitivity on Windows. This is not security sensitive.
+        $lock_key = sha1(Util::normalizePath($this->getTarget()));
 
         // Relay the lock to a real filesystem lock.
         return fopen($temp_dir . '/' . $lock_key, 'c');
