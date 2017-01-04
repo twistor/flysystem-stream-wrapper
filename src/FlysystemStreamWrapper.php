@@ -190,6 +190,24 @@ class FlysystemStreamWrapper
     }
 
     /**
+     * Unregisters all controlled stream wrappers.
+     */
+    public static function unregisterAll()
+    {
+        foreach (static::getRegisteredProtocols() as $protocol) {
+            static::unregister($protocol);
+        }
+    }
+
+    /**
+     * @return array The list of registered protocols.
+     */
+    public static function getRegisteredProtocols()
+    {
+        return array_keys(static::$filesystems);
+    }
+
+    /**
      * Determines if a protocol is registered.
      *
      * @param string $protocol The protocol to check.
