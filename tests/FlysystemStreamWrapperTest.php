@@ -32,4 +32,36 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue(chmod('vis://test.txt', 0777));
         $filesystem->delete('test.txt');
     }
+
+    public function testGetRegisteredProtocols()
+    {
+        $filesystem = new Filesystem(new NullAdapter());
+        FlysystemStreamWrapper::register('test1', $filesystem);
+        FlysystemStreamWrapper::register('test2', $filesystem);
+
+        $this->assertSame(['test1', 'test2'], FlysystemStreamWrapper::getRegisteredProtocols());
+
+        FlysystemStreamWrapper::unregister('test1');
+        FlysystemStreamWrapper::unregister('test2');
+    }
+
+    public function testUnregisterAll()
+    {
+        $filesystem = new Filesystem(new NullAdapter());
+        FlysystemStreamWrapper::register('test1', $filesystem);
+        FlysystemStreamWrapper::register('test2', $filesystem);
+
+        $this->assertTrue(in_array('test1', stream_get_wrappers(), true));
+        $this->assertTrue(in_array('test2', stream_get_wrappers(), true));
+
+        FlysystemStreamWrapper::unregisterAll();
+
+        $this->assertFalse(in_array('test1', stream_get_wrappers(), true));
+        $this->assertFalse(in_array('test2', stream_get_wrappers(), true));
+    }
+
+    public function tearDown()
+    {
+        FlysystemStreamWrapper::unregisterAll();
+    }
 }
