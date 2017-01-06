@@ -94,6 +94,10 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
 
     public function testChmod()
     {
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            $this->markTestSkipped('Windows is not very good at permissions.');
+        }
+
         $this->putContent('file.txt', 'contents');
 
         $this->assertTrue(chmod('flysystem://file.txt', 0777));
