@@ -1,7 +1,5 @@
 <?php
 
-namespace Twistor\Tests;
-
 use League\Flysystem\AdapterInterface;
 use League\Flysystem\Filesystem;
 use Twistor\Flysystem\Plugin\ForcedRename;

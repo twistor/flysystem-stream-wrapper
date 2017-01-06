@@ -1,7 +1,5 @@
 <?php
 
-namespace Twistor\Tests;
-
 use League\Flysystem\Adapter\Local;
 use League\Flysystem\Adapter\NullAdapter;
 use League\Flysystem\Filesystem;

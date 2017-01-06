@@ -1,13 +1,11 @@
 <?php
 
-namespace Twistor\Tests;
-
 use League\Flysystem\Adapter\Local;
 use League\Flysystem\Filesystem;
 use Twistor\FlysystemStreamWrapper;
 use Twistor\Tests\WritableLocal;
 
-class WritableOptimzedTest  extends StreamOperationTest
+class WritableOptimzedTest extends StreamOperationTest
 {
     public function setUp()
     {

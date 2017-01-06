@@ -1,13 +1,11 @@
 <?php
 
-namespace Twistor\Tests;
-
 use League\Flysystem\Adapter\Local;
 use League\Flysystem\Adapter\NullAdapter;
 use League\Flysystem\Filesystem;
 use Prophecy\Argument;
-use Twistor\FlysystemStreamWrapper;
 use Twistor\Flysystem\Plugin\Stat;
+use Twistor\FlysystemStreamWrapper;
 
 class StreamOperationTest extends \PHPUnit_Framework_TestCase
 {
@@ -74,7 +72,7 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
     public function testFailedStat()
     {
         // HHVM Doesn't support url_stat().
-        if (!defined('HHVM_VERSION')) {
+        if ( ! defined('HHVM_VERSION')) {
             $this->assertFalse(@stat('flysystem://file.txt'));
             $this->assertWarning();
         }
@@ -527,7 +525,8 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
         $this->assertFileContent($file, $content);
     }
 
-    protected function assertPerm($file, $perm) {
+    protected function assertPerm($file, $perm)
+    {
         clearstatcache(false);
 
         $fileperm = fileperms($this->testDir . '/' . $file);
@@ -539,7 +538,7 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
     {
         $warning = error_get_last();
 
-        $this->assertTrue(!empty($warning), 'Warning found.');
+        $this->assertTrue( ! empty($warning), 'Warning found.');
 
         if ($message) {
             $this->assertTrue(strpos($warning['message'], $message) !== false, 'error message found');

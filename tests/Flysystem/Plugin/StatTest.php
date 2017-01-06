@@ -1,7 +1,5 @@
 <?php
 
-namespace Twistor\Tests;
-
 use League\Flysystem\Filesystem;
 use Twistor\Flysystem\Plugin\Stat;
 

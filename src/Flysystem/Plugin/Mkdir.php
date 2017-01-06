@@ -35,7 +35,7 @@ class Mkdir extends AbstractPlugin
             return (bool) $adapter->createDir($dirname, $this->defaultConfig());
         }
 
-        if (!$adapter->has(dirname($dirname))) {
+        if ( ! $adapter->has(dirname($dirname))) {
             throw new FileNotFoundException($dirname);
         }
 

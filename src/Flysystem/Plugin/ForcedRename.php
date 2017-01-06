@@ -41,7 +41,7 @@ class ForcedRename extends AbstractPlugin
             return true;
         }
 
-        if (!$this->isValidRename($path, $newpath)) {
+        if ( ! $this->isValidRename($path, $newpath)) {
             // Returns false if a Flysystem call fails.
             return false;
         }
@@ -61,17 +61,17 @@ class ForcedRename extends AbstractPlugin
     {
         $adapter = $this->filesystem->getAdapter();
 
-        if (!$adapter->has($source)) {
+        if ( ! $adapter->has($source)) {
             throw new FileNotFoundException($source);
         }
 
         $subdir = Util::dirname($dest);
 
-        if (strlen($subdir) && !$adapter->has($subdir)) {
+        if (strlen($subdir) && ! $adapter->has($subdir)) {
             throw new FileNotFoundException($source);
         }
 
-        if (!$adapter->has($dest)) {
+        if ( ! $adapter->has($dest)) {
             return true;
         }
 
@@ -112,7 +112,7 @@ class ForcedRename extends AbstractPlugin
 
         // Allow overwriting destination directory if not empty.
         $contents = $this->filesystem->listContents($dest);
-        if (!empty($contents)) {
+        if ( ! empty($contents)) {
             throw new DirectoryNotEmptyException();
         }
 

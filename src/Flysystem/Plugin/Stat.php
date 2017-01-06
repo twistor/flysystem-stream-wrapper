@@ -93,7 +93,7 @@ class Stat extends AbstractPlugin
     /**
      * Returns metadata.
      *
-     * @param string $path The path to get metadata for.
+     * @param string $path   The path to get metadata for.
      * @param array  $ignore Metadata to ignore.
      *
      * @return array The metadata as returned by Filesystem::getMetadata().
@@ -115,14 +115,12 @@ class Stat extends AbstractPlugin
 
             try {
                 $metadata[$key] = $this->filesystem->$method($path);
-
             } catch (\LogicException $e) {
                 // Some adapters don't support certain metadata. For instance,
                 // the Dropbox adapter throws exceptions when calling
                 // getVisibility(). Remove the required key so we don't keep
                 // calling it.
                 unset($this->required[$key]);
-
             }
         }
 

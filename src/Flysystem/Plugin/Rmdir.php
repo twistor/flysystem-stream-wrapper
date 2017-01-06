@@ -40,7 +40,7 @@ class Rmdir extends AbstractPlugin
 
         $contents = $this->filesystem->listContents($dirname);
 
-        if (!empty($contents)) {
+        if ( ! empty($contents)) {
             throw new DirectoryNotEmptyException();
         }
 

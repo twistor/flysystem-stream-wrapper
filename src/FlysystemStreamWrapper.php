@@ -46,7 +46,7 @@ class FlysystemStreamWrapper
      * @var array
      */
     protected static $defaultConfiguration = [
-        'permissions' =>[
+        'permissions' => [
             'dir' => [
                 'private' => 0700,
                 'public' => 0755,
@@ -180,7 +180,7 @@ class FlysystemStreamWrapper
      */
     public static function unregister($protocol)
     {
-        if (!static::streamWrapperExists($protocol)) {
+        if ( ! static::streamWrapperExists($protocol)) {
             return false;
         }
 
@@ -272,7 +272,7 @@ class FlysystemStreamWrapper
             return false;
         }
 
-        if (!$dirlen = strlen($path)) {
+        if ( ! $dirlen = strlen($path)) {
             return true;
         }
 
@@ -403,7 +403,7 @@ class FlysystemStreamWrapper
      */
     public function stream_flush()
     {
-        if (!$this->needsFlush) {
+        if ( ! $this->needsFlush) {
             return true;
         }
 
@@ -469,12 +469,11 @@ class FlysystemStreamWrapper
 
                 try {
                     return $this->getFilesystem()->setVisibility($this->getTarget(), $visibility);
-
                 } catch (\LogicException $e) {
                     // The adapter doesn't support visibility.
-
                 } catch (\Exception $e) {
                     $this->triggerError('chmod', $e);
+
                     return false;
                 }
 
@@ -616,6 +615,7 @@ class FlysystemStreamWrapper
         if ($this->isAppendMode) {
             return 0;
         }
+
         return ftell($this->handle);
     }
 
@@ -697,13 +697,11 @@ class FlysystemStreamWrapper
 
         try {
             return $this->getFilesystem()->stat($this->getTarget(), $flags);
-
         } catch (FileNotFoundException $e) {
             // File doesn't exist.
-            if (!($flags & STREAM_URL_STAT_QUIET)) {
+            if ( ! ($flags & STREAM_URL_STAT_QUIET)) {
                 $this->triggerError('stat', $e);
             }
-
         } catch (\Exception $e) {
             $this->triggerError('stat', $e);
         }
@@ -724,10 +722,12 @@ class FlysystemStreamWrapper
         switch ($mode[0]) {
             case 'r':
                 $this->needsCowCheck = true;
+
                 return $this->getFilesystem()->readStream($path);
 
             case 'w':
                 $this->needsFlush = true;
+
                 return fopen('php://temp', 'w+b');
 
             case 'a':
@@ -755,7 +755,6 @@ class FlysystemStreamWrapper
         try {
             $handle = $this->getFilesystem()->readStream($path);
             $this->needsCowCheck = true;
-
         } catch (FileNotFoundException $e) {
             $handle = fopen('php://temp', 'w+b');
             $this->needsFlush = true;
@@ -807,7 +806,7 @@ class FlysystemStreamWrapper
      */
     protected function ensureWritableHandle()
     {
-        if (!$this->needsCowCheck) {
+        if ( ! $this->needsCowCheck) {
             return;
         }
 
@@ -839,7 +838,7 @@ class FlysystemStreamWrapper
      */
     protected function getTarget($uri = null)
     {
-        if (!isset($uri)) {
+        if ( ! isset($uri)) {
             $uri = $this->uri;
         }
 
@@ -890,7 +889,6 @@ class FlysystemStreamWrapper
     {
         try {
             return call_user_func_array([$objet, $method], $args);
-
         } catch (\Exception $e) {
             $errorname = $errorname ?: $method;
             $this->triggerError($errorname, $e);
@@ -909,16 +907,19 @@ class FlysystemStreamWrapper
     {
         if ($e instanceof TriggerErrorException) {
             trigger_error($e->formatMessage($function), E_USER_WARNING);
+
             return;
         }
 
         switch (get_class($e)) {
             case 'League\Flysystem\FileNotFoundException':
                 trigger_error(sprintf('%s(): No such file or directory', $function), E_USER_WARNING);
+
                 return;
 
             case 'League\Flysystem\RootViolationException':
                 trigger_error(sprintf('%s(): Cannot remove the root directory', $function), E_USER_WARNING);
+
                 return;
         }
 
