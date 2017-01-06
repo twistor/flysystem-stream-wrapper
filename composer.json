@@ -15,9 +15,7 @@
         "twistor/stream-util": "~1.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "~4.1",
-        "phpspec/prophecy": "^1.2.0",
-        "phpspec/prophecy-phpunit": "^1.0.2"
+        "phpunit/phpunit": "~4.8"
     },
     "autoload": {
         "psr-4": {
