@@ -40,9 +40,6 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
         FlysystemStreamWrapper::register('test2', $filesystem);
 
         $this->assertSame(['test1', 'test2'], FlysystemStreamWrapper::getRegisteredProtocols());
-
-        FlysystemStreamWrapper::unregister('test1');
-        FlysystemStreamWrapper::unregister('test2');
     }
 
     public function testUnregisterAll()

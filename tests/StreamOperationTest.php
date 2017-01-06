@@ -44,7 +44,7 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
     {
         parent::tearDown();
 
-        FlysystemStreamWrapper::unregister('flysystem');
+        FlysystemStreamWrapper::unregisterAll();
         $filesystem = new Filesystem(new Local(__DIR__));
         $filesystem->deleteDir('testdir');
     }
@@ -118,8 +118,6 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
 
         $this->assertFalse(@chmod('fail://path', 0777));
         $this->assertWarning('chmod failed');
-
-        FlysystemStreamWrapper::unregister('fail');
     }
 
     public function testUnlink()
@@ -330,8 +328,6 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
 
         @opendir('fail://path');
         $this->assertWarning();
-
-        FlysystemStreamWrapper::unregister('fail');
     }
 
     public function testDirectoryIterationRoot()
@@ -455,8 +451,6 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
 
         $this->assertFalse(@fopen('fail://test.txt', 'x+'));
         $this->assertWarning();
-
-        FlysystemStreamWrapper::unregister('fail');
     }
 
     public function testInvalidMode()
