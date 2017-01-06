@@ -2,6 +2,7 @@
 
 namespace Twistor\Tests;
 
+use League\Flysystem\Filesystem;
 use Twistor\Flysystem\Plugin\Stat;
 
 class StatTest extends \PHPUnit_Framework_TestCase
@@ -22,7 +23,7 @@ class StatTest extends \PHPUnit_Framework_TestCase
         $metadata = ['size', 'timestamp', 'visibility'];
 
         $plugin = new Stat($permissions, $metadata);
-        $filesystem = $this->prophesize('League\Flysystem\Filesystem');
+        $filesystem = $this->prophesize(Filesystem::class);
         $plugin->setFilesystem($filesystem->reveal());
 
         $filesystem->getMetadata('path')->willReturn(false);

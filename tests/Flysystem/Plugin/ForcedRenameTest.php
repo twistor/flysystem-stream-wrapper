@@ -2,6 +2,7 @@
 
 namespace Twistor\Tests;
 
+use League\Flysystem\AdapterInterface;
 use League\Flysystem\Filesystem;
 use Twistor\Flysystem\Plugin\ForcedRename;
 
@@ -10,7 +11,7 @@ class ForcedRenameTest extends \PHPUnit_Framework_TestCase
     public function test()
     {
         $plugin = new ForcedRename();
-        $adapter = $this->prophesize('League\Flysystem\AdapterInterface');
+        $adapter = $this->prophesize(AdapterInterface::class);
         $plugin->setFilesystem(new Filesystem($adapter->reveal()));
 
         $adapter->has('source')->willReturn(true);

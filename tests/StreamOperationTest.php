@@ -7,6 +7,7 @@ use League\Flysystem\Adapter\NullAdapter;
 use League\Flysystem\Filesystem;
 use Prophecy\Argument;
 use Twistor\FlysystemStreamWrapper;
+use Twistor\Flysystem\Plugin\Stat;
 
 class StreamOperationTest extends \PHPUnit_Framework_TestCase
 {
@@ -81,7 +82,7 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
 
     public function testFailedStat2()
     {
-        $stat = $this->prophesize('Twistor\Flysystem\Plugin\Stat');
+        $stat = $this->prophesize(Stat::class);
         $stat->getMethod()->willReturn('stat');
         $stat->setFilesystem(Argument::cetera())->willReturn(true);
         $stat->handle(Argument::cetera())->willThrow(new \Exception('stat failed'));
@@ -110,7 +111,7 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
 
     public function testFailedChmod()
     {
-        $filesystem = $this->prophesize('League\Flysystem\Filesystem');
+        $filesystem = $this->prophesize(Filesystem::class);
         $filesystem->setVisibility(Argument::cetera())->willThrow(new \Exception('chmod failed'));
         $filesystem->addPlugin(Argument::cetera())->willReturn(true);
 
@@ -320,7 +321,7 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
 
     public function testDirectoryIterationFail()
     {
-        $filesystem = $this->prophesize('League\Flysystem\Filesystem');
+        $filesystem = $this->prophesize(Filesystem::class);
         $filesystem->listContents('path')->willThrow(new \Exception());
         $filesystem->addPlugin(Argument::cetera())->willReturn(true);
 
@@ -443,7 +444,7 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
 
     public function testFailedOpen()
     {
-        $filesystem = $this->prophesize('League\Flysystem\Filesystem');
+        $filesystem = $this->prophesize(Filesystem::class);
         $filesystem->has(Argument::cetera())->willThrow(new \Exception('xmode failed'));
         $filesystem->addPlugin(Argument::cetera())->willReturn(true);
 
