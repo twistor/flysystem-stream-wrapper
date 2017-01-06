@@ -31,4 +31,4 @@ install:
 
 test_script:
   - cd c:\projects\twistor\flysystem-stream-wrapper
-  - bin\phpunit.bat --verbose
+  - vendor\bin\phpunit.bat --verbose
