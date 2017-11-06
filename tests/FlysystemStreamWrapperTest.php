@@ -15,8 +15,16 @@ class FlysystemStreamWrapperTest extends \PHPUnit_Framework_TestCase
 
         $this->assertTrue(in_array('test', stream_get_wrappers(), true));
 
+        $this->assertTrue(stream_is_local('test://'));
+
         // Registering twice should be a noop.
         $this->assertFalse(FlysystemStreamWrapper::register('test', $filesystem));
+
+        $this->assertTrue(FlysystemStreamWrapper::unregister('test'));
+
+        $this->assertTrue(FlysystemStreamWrapper::register('test', $filesystem, [], STREAM_IS_URL));
+
+        $this->assertFalse(stream_is_local('test://'));
 
         $this->assertTrue(FlysystemStreamWrapper::unregister('test'));
         $this->assertFalse(FlysystemStreamWrapper::unregister('test'));

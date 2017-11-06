@@ -155,10 +155,11 @@ class FlysystemStreamWrapper
      * @param string              $protocol      The protocol.
      * @param FilesystemInterface $filesystem    The filesystem.
      * @param array|null          $configuration Optional configuration.
+     * @param int                 $flags         Should be set to STREAM_IS_URL if protocol is a URL protocol. Default is 0, local stream.
      *
      * @return bool True if the protocal was registered, false if not.
      */
-    public static function register($protocol, FilesystemInterface $filesystem, array $configuration = null)
+    public static function register($protocol, FilesystemInterface $filesystem, array $configuration = null, $flags = 0)
     {
         if (static::streamWrapperExists($protocol)) {
             return false;
@@ -168,7 +169,7 @@ class FlysystemStreamWrapper
         static::registerPlugins($protocol, $filesystem);
         static::$filesystems[$protocol] = $filesystem;
 
-        return stream_wrapper_register($protocol, __CLASS__);
+        return stream_wrapper_register($protocol, __CLASS__, $flags);
     }
 
     /**
