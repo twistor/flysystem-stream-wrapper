@@ -458,6 +458,12 @@ class StreamOperationTest extends \PHPUnit_Framework_TestCase
         $this->assertWarning();
     }
 
+    public function testWritable()
+    {
+        file_put_contents('flysystem://tmp.txt', 'content');
+        $this->assertTrue(is_writable('flysystem://tmp.txt'));
+    }
+
     public function testFstat()
     {
         // Open handle in write mode so that the file doesn't exist.

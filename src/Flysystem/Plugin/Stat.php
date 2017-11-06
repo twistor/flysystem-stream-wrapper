@@ -4,6 +4,8 @@ namespace Twistor\Flysystem\Plugin;
 
 use League\Flysystem\AdapterInterface;
 use Twistor\FlysystemStreamWrapper;
+use Twistor\PosixUid;
+use Twistor\Uid;
 
 class Stat extends AbstractPlugin
 {
@@ -43,6 +45,11 @@ class Stat extends AbstractPlugin
     protected $required;
 
     /**
+     * @var \Twistor\Uid
+     */
+    protected $uid;
+
+    /**
      * Constructs a Stat object.
      *
      * @param array $permissions An array of permissions.
@@ -52,6 +59,7 @@ class Stat extends AbstractPlugin
     {
         $this->permissions = $permissions;
         $this->required = array_combine($metadata, $metadata);
+        $this->uid = \extension_loaded('posix') ? new PosixUid() : new Uid();
     }
 
     /**
@@ -137,6 +145,9 @@ class Stat extends AbstractPlugin
     protected function mergeMeta(array $metadata)
     {
         $ret = static::$defaultMeta;
+
+        $ret['uid'] = $this->uid->getUid();
+        $ret['gid'] = $this->uid->getGid();
 
         $ret['mode'] = $metadata['type'] === 'dir' ? 040000 : 0100000;
         $ret['mode'] += $this->permissions[$metadata['type']][$metadata['visibility']];
