@@ -384,7 +384,9 @@ class FlysystemStreamWrapper
         // as needed in that case. This will be a no-op for php 5.
         $this->stream_flush();
 
-        fclose($this->handle);
+        if (is_resource($this->handle)) {
+            fclose($this->handle);
+        }
     }
 
     /**
@@ -418,7 +420,9 @@ class FlysystemStreamWrapper
         $args = [$this->getTarget(), $this->handle];
         $success = $this->invoke($this->getFilesystem(), 'putStream', $args, 'fflush');
 
-        fseek($this->handle, $pos);
+        if (is_resource($this->handle)) {
+            fseek($this->handle, $pos);
+        }
 
         return $success;
     }
