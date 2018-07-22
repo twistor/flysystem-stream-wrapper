@@ -11,13 +11,15 @@ cache:
 
 environment:
     matrix:
+        - PHP_VERSION: 5.6
         - PHP_VERSION: 7.0
-#        - PHP_VERSION: 7.1
-#        - PHP_VERSION: 7.2
+        - PHP_VERSION: 7.1
+        - PHP_VERSION: 7.2
 
 init:
     - ps: $env:PATH = 'c:\tools\php;c:\ProgramData\ComposerSetup\bin;' + $env:PATH
     - SET COMPOSER_NO_INTERACTION=1
+    - SET ANSICON=121x90 (121x90)
 
 install:
   - ps: Set-Service wuauserv -StartupType Manual
@@ -31,7 +33,7 @@ install:
   - appveyor-retry cinst --no-progress -y composer
   - cd c:\projects\project-code
   - appveyor-retry composer self-update
-  - appveyor-retry composer update --no-interaction --no-ansi --no-progress --no-suggest --optimize-autoloader --prefer-stable --prefer-dist
+  - appveyor-retry composer update --no-interaction --no-progress --no-suggest --optimize-autoloader --prefer-stable --prefer-dist
 
 test_script:
   - cd c:\projects\project-code
