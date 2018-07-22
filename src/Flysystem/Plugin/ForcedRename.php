@@ -11,7 +11,7 @@ use Twistor\Flysystem\Exception\NotADirectoryException;
 class ForcedRename extends AbstractPlugin
 {
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function getMethod()
     {
@@ -24,12 +24,12 @@ class ForcedRename extends AbstractPlugin
      * @param string $path    path to file
      * @param string $newpath new path
      *
+     * @return bool
+     *
      * @throws \League\Flysystem\FileNotFoundException
      * @throws \Twistor\Flysystem\Exception\DirectoryExistsException
      * @throws \Twistor\Flysystem\Exception\DirectoryNotEmptyException
      * @throws \Twistor\Flysystem\Exception\NotADirectoryException
-     *
-     * @return bool
      */
     public function handle($path, $newpath)
     {
@@ -56,6 +56,11 @@ class ForcedRename extends AbstractPlugin
      * @param string $dest
      *
      * @return bool
+     *
+     * @throws \League\Flysystem\FileNotFoundException
+     * @throws \Twistor\Flysystem\Exception\DirectoryExistsException
+     * @throws \Twistor\Flysystem\Exception\DirectoryNotEmptyException
+     * @throws \Twistor\Flysystem\Exception\NotADirectoryException
      */
     protected function isValidRename($source, $dest)
     {
@@ -85,6 +90,10 @@ class ForcedRename extends AbstractPlugin
      * @param string $dest
      *
      * @return bool
+     *
+     * @throws \Twistor\Flysystem\Exception\DirectoryExistsException
+     * @throws \Twistor\Flysystem\Exception\DirectoryNotEmptyException
+     * @throws \Twistor\Flysystem\Exception\NotADirectoryException
      */
     protected function compareTypes($source, $dest)
     {

@@ -63,7 +63,7 @@ class Stat extends AbstractPlugin
     }
 
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function getMethod()
     {
@@ -74,9 +74,11 @@ class Stat extends AbstractPlugin
      * Emulates stat().
      *
      * @param string $path
-     * @param int    $flags
+     * @param int $flags
      *
      * @return array Output similar to stat().
+     *
+     * @throws \League\Flysystem\FileNotFoundException
      *
      * @see stat()
      */
@@ -101,10 +103,12 @@ class Stat extends AbstractPlugin
     /**
      * Returns metadata.
      *
-     * @param string $path   The path to get metadata for.
-     * @param array  $ignore Metadata to ignore.
+     * @param string $path The path to get metadata for.
+     * @param array $ignore Metadata to ignore.
      *
      * @return array The metadata as returned by Filesystem::getMetadata().
+     *
+     * @throws \League\Flysystem\FileNotFoundException
      *
      * @see \League\Flysystem\Filesystem::getMetadata()
      */

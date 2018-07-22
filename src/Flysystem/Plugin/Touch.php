@@ -7,7 +7,7 @@ use League\Flysystem\Util;
 class Touch extends AbstractPlugin
 {
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function getMethod()
     {
@@ -24,6 +24,7 @@ class Touch extends AbstractPlugin
     public function handle($path)
     {
         $path = Util::normalizePath($path);
+
         $adapter = $this->filesystem->getAdapter();
 
         if ($adapter->has($path)) {

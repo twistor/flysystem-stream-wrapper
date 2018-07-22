@@ -12,7 +12,6 @@ use Twistor\Flysystem\Plugin\Mkdir;
 use Twistor\Flysystem\Plugin\Rmdir;
 use Twistor\Flysystem\Plugin\Stat;
 use Twistor\Flysystem\Plugin\Touch;
-use Twistor\StreamUtil;
 
 /**
  * An adapter for Flysystem to a PHP stream wrapper.
@@ -157,7 +156,7 @@ class FlysystemStreamWrapper
      * @param array|null          $configuration Optional configuration.
      * @param int                 $flags         Should be set to STREAM_IS_URL if protocol is a URL protocol. Default is 0, local stream.
      *
-     * @return bool True if the protocal was registered, false if not.
+     * @return bool True if the protocol was registered, false if not.
      */
     public static function register($protocol, FilesystemInterface $filesystem, array $configuration = null, $flags = 0)
     {
@@ -173,11 +172,11 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * Unegisters a stream wrapper.
+     * Unregisters a stream wrapper.
      *
      * @param string $protocol The protocol.
      *
-     * @return bool True if the protocal was unregistered, false if not.
+     * @return bool True if the protocol was unregistered, false if not.
      */
     public static function unregister($protocol)
     {
@@ -222,8 +221,7 @@ class FlysystemStreamWrapper
 
     /**
      * Registers plugins on the filesystem.
-     *
-     * @param string              $protocol
+     * @param string $protocol
      * @param FilesystemInterface $filesystem
      */
     protected static function registerPlugins($protocol, FilesystemInterface $filesystem)
@@ -363,7 +361,7 @@ class FlysystemStreamWrapper
     }
 
     /**
-     * Retrieves the underlaying resource.
+     * Retrieves the underlying resource.
      *
      * @param int $cast_as
      *
@@ -688,7 +686,7 @@ class FlysystemStreamWrapper
      * @param string $uri
      * @param int    $flags
      *
-     * @return array Output similar to stat().
+     * @return array|false Output similar to stat().
      *
      * @see stat()
      */
@@ -717,6 +715,8 @@ class FlysystemStreamWrapper
      * @param string $mode The mode to open the stream in.
      *
      * @return resource|bool The file handle, or false.
+     *
+     * @throws \League\Flysystem\FileNotFoundException
      */
     protected function getStream($path, $mode)
     {
@@ -879,17 +879,17 @@ class FlysystemStreamWrapper
     /**
      * Calls a method on an object, catching any exceptions.
      *
-     * @param object      $objet     The object to call the method on.
+     * @param object      $object    The object to call the method on.
      * @param string      $method    The method name.
      * @param array       $args      The arguments to the method.
      * @param string|null $errorname The name of the calling function.
      *
      * @return mixed|false The return value of the call, or false on failure.
      */
-    protected function invoke($objet, $method, array $args, $errorname = null)
+    protected function invoke($object, $method, array $args, $errorname = null)
     {
         try {
-            return call_user_func_array([$objet, $method], $args);
+            return call_user_func_array([$object, $method], $args);
         } catch (\Exception $e) {
             $errorname = $errorname ?: $method;
             $this->triggerError($errorname, $e);

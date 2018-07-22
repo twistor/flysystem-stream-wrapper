@@ -9,19 +9,22 @@ use Twistor\Flysystem\Exception\DirectoryNotEmptyException;
 class Rmdir extends AbstractPlugin
 {
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function getMethod()
     {
         return 'rmdir';
     }
+
     /**
      * Delete a directory.
      *
      * @param string $dirname path to directory
-     * @param int    $options
+     * @param int $options
      *
      * @return bool
+     *
+     * @throws \Twistor\Flysystem\Exception\DirectoryNotEmptyException
      */
     public function handle($dirname, $options)
     {

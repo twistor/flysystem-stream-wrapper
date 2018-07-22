@@ -8,7 +8,7 @@ use League\Flysystem\Util;
 class Mkdir extends AbstractPlugin
 {
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function getMethod()
     {
@@ -19,10 +19,12 @@ class Mkdir extends AbstractPlugin
      * Creates a directory.
      *
      * @param string $dirname
-     * @param int    $mode
-     * @param int    $options
+     * @param int $mode
+     * @param int $options
      *
      * @return bool True on success, false on failure.
+     *
+     * @throws \League\Flysystem\FileNotFoundException
      */
     public function handle($dirname, $mode, $options)
     {
