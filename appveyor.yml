@@ -1,34 +1,38 @@
 build: false
-platform: x86
-clone_folder: c:\projects\twistor\flysystem-stream-wrapper
+platform:
+  - x64
+clone_folder: c:\projects\project-code
 
 cache:
-  - c:\php -> appveyor.yml
+    - c:\ProgramData\chocolatey\bin -> appveyor.yml
+    - c:\ProgramData\chocolatey\lib -> appveyor.yml
+    - c:\tools\php -> appveyor.yml
+    - c:\ProgramData\ComposerSetup -> appveyor.yml
+
+environment:
+    matrix:
+        - PHP_VERSION: 7.0
+#        - PHP_VERSION: 7.1
+#        - PHP_VERSION: 7.2
 
 init:
-  - SET PATH=c:\php;%PATH%
-  - SET COMPOSER_NO_INTERACTION=1
-  - SET PHP=1
+    - ps: $env:PATH = 'c:\tools\php;c:\ProgramData\ComposerSetup\bin;' + $env:PATH
+    - SET COMPOSER_NO_INTERACTION=1
 
 install:
-  - IF EXIST c:\php (SET PHP=0) ELSE (mkdir c:\php)
-  - cd c:\php
-  - IF %PHP%==1 appveyor DownloadFile https://windows.php.net/downloads/releases/php-7.1.18-nts-Win32-VC14-x64.zip
-  - IF %PHP%==1 7z x php-7.1.18-nts-Win32-VC14-x64.zip -y >nul
-  - IF %PHP%==1 del /Q *.zip
-  - IF %PHP%==1 echo @php %%~dp0composer.phar %%* > composer.bat
-  - IF %PHP%==1 copy /Y php.ini-development php.ini
-  - IF %PHP%==1 echo max_execution_time=1200 >> php.ini
-  - IF %PHP%==1 echo date.timezone="UTC" >> php.ini
-  - IF %PHP%==1 echo extension_dir=ext >> php.ini
-  - IF %PHP%==1 echo extension=php_openssl.dll >> php.ini
-  - IF %PHP%==1 echo extension=php_mbstring.dll >> php.ini
-  - IF %PHP%==1 echo extension=php_fileinfo.dll >> php.ini
-  - appveyor DownloadFile https://getcomposer.org/composer.phar
-  - cd c:\projects\twistor\flysystem-stream-wrapper
-  - mkdir %APPDATA%\Composer
-  - composer update --prefer-dist --no-progress --ansi
+  - ps: Set-Service wuauserv -StartupType Manual
+  - ps: appveyor-retry cinst --no-progress --params '""/InstallDir:c:\tools\php""' -y php --version ((choco search php --exact --all-versions -r | select-string -pattern $env:PHP_VERSION | sort { [version]($_ -split '\|' | select -last 1) } -Descending | Select-Object -first 1) -replace '[php|]','')
+  - cd c:\tools\php
+  - copy php.ini-production php.ini /Y
+  - echo date.timezone="UTC" >> php.ini
+  - echo extension_dir=ext >> php.ini
+  - echo extension=php_openssl.dll >> php.ini
+  - echo extension=php_fileinfo.dll >> php.ini
+  - appveyor-retry cinst --no-progress -y composer
+  - cd c:\projects\project-code
+  - appveyor-retry composer self-update
+  - appveyor-retry composer update --no-interaction --no-ansi --no-progress --no-suggest --optimize-autoloader --prefer-stable --prefer-dist
 
 test_script:
-  - cd c:\projects\twistor\flysystem-stream-wrapper
-  - vendor\bin\phpunit.bat --verbose
+  - cd c:\projects\project-code
+  - vendor\bin\phpunit --verbose
