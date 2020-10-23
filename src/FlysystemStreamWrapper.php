@@ -603,7 +603,13 @@ class FlysystemStreamWrapper
 
         // Use the size of our handle, since it could have been written to or
         // truncated.
-        $stat['size'] = $stat[7] = StreamUtil::getSize($this->handle);
+        $stream_util_size = StreamUtil::getSize($this->handle);
+        if ($stream_util_size) {
+            $stat['size'] = $stat[7] = $stream_util_size;
+        }
+        else {
+            $stat['size'] = $stat[7];
+        }
 
         return $stat;
     }
