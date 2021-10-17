@@ -2,9 +2,8 @@
 
 namespace Twistor\Flysystem\Exception;
 
-use League\Flysystem\Exception;
-
-class TriggerErrorException extends Exception
+use Exception as GlobalException;
+class TriggerErrorException extends GlobalException
 {
     protected $defaultMessage;
 

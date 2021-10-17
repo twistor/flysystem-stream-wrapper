@@ -2,18 +2,8 @@
 
 namespace Twistor\Flysystem\Plugin;
 
-use League\Flysystem\Util;
-
 class Touch extends AbstractPlugin
 {
-    /**
-     * @inheritdoc
-     */
-    public function getMethod()
-    {
-        return 'touch';
-    }
-
     /**
      * Emulates touch().
      *
@@ -23,14 +13,10 @@ class Touch extends AbstractPlugin
      */
     public function handle($path)
     {
-        $path = Util::normalizePath($path);
-
-        $adapter = $this->filesystem->getAdapter();
-
-        if ($adapter->has($path)) {
+        if ($this->filesystem->fileExists($path)) {
             return true;
         }
 
-        return (bool) $adapter->write($path, '', $this->defaultConfig());
+        return (bool) $this->filesystem->write($path, '');
     }
 }

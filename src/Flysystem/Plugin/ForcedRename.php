@@ -2,10 +2,9 @@
 
 namespace Twistor\Flysystem\Plugin;
 
-use League\Flysystem\FileNotFoundException;
-use League\Flysystem\Util;
 use Twistor\Flysystem\Exception\DirectoryExistsException;
 use Twistor\Flysystem\Exception\DirectoryNotEmptyException;
+use Twistor\Flysystem\Exception\FileNotFoundException;
 use Twistor\Flysystem\Exception\NotADirectoryException;
 
 class ForcedRename extends AbstractPlugin
@@ -33,9 +32,6 @@ class ForcedRename extends AbstractPlugin
      */
     public function handle($path, $newpath)
     {
-        $path = Util::normalizePath($path);
-        $newpath = Util::normalizePath($newpath);
-
         // Ignore useless renames.
         if ($path === $newpath) {
             return true;
@@ -46,7 +42,7 @@ class ForcedRename extends AbstractPlugin
             return false;
         }
 
-        return (bool) $this->filesystem->getAdapter()->rename($path, $newpath);
+        return (bool) $this->filesystem->move($path, $newpath);
     }
 
     /**
@@ -64,23 +60,21 @@ class ForcedRename extends AbstractPlugin
      */
     protected function isValidRename($source, $dest)
     {
-        $adapter = $this->filesystem->getAdapter();
-
-        if ( ! $adapter->has($source)) {
+        if ( ! $this->filesystem->fileExists($source)) {
             throw new FileNotFoundException($source);
         }
 
-        $subdir = Util::dirname($dest);
+        $subdir = dirname($dest);
 
-        if (strlen($subdir) && ! $adapter->has($subdir)) {
-            throw new FileNotFoundException($source);
+        if (strlen($subdir) && $subdir != '.' && ! $this->filesystem->fileExists($subdir)) {
+            throw new FileNotFoundException($subdir);
         }
 
-        if ( ! $adapter->has($dest)) {
+        if ( ! $this->filesystem->fileExists($dest)) {
             return true;
         }
 
-        return $this->compareTypes($source, $dest);
+        return false;
     }
 
     /**
@@ -94,12 +88,12 @@ class ForcedRename extends AbstractPlugin
      * @throws \Twistor\Flysystem\Exception\DirectoryExistsException
      * @throws \Twistor\Flysystem\Exception\DirectoryNotEmptyException
      * @throws \Twistor\Flysystem\Exception\NotADirectoryException
+     * @todo Check if still needed
      */
     protected function compareTypes($source, $dest)
     {
-        $adapter = $this->filesystem->getAdapter();
 
-        $source_type = $adapter->getMetadata($source)['type'];
+        $source_type = $this->filesystem->mimeType($source);
         $dest_type = $adapter->getMetadata($dest)['type'];
 
         // These three checks are done in order of cost to minimize Flysystem

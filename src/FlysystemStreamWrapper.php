@@ -2,10 +2,15 @@
 
 namespace Twistor;
 
+use Exception;
+use InvalidArgumentException;
 use League\Flysystem\AdapterInterface;
 use League\Flysystem\FileNotFoundException;
+use League\Flysystem\Filesystem;
 use League\Flysystem\FilesystemInterface;
+use League\Flysystem\FilesystemOperator;
 use League\Flysystem\Util;
+use Twistor\Flysystem\Exception\DirectoryNotEmptyException;
 use Twistor\Flysystem\Exception\TriggerErrorException;
 use Twistor\Flysystem\Plugin\ForcedRename;
 use Twistor\Flysystem\Plugin\Mkdir;
@@ -69,7 +74,7 @@ class FlysystemStreamWrapper
     /**
      * The filesystem of the current stream wrapper.
      *
-     * @var \League\Flysystem\FilesystemInterface
+     * @var \League\Flysystem\Filesystem
      */
     protected $filesystem;
 
@@ -158,14 +163,14 @@ class FlysystemStreamWrapper
      *
      * @return bool True if the protocol was registered, false if not.
      */
-    public static function register($protocol, FilesystemInterface $filesystem, array $configuration = null, $flags = 0)
+    public static function register($protocol, FilesystemOperator $filesystem, array $configuration = null, $flags = 0)
     {
         if (static::streamWrapperExists($protocol)) {
             return false;
         }
 
         static::$config[$protocol] = $configuration ?: static::$defaultConfiguration;
-        static::registerPlugins($protocol, $filesystem);
+        //static::registerPlugins($protocol, $filesystem);
         static::$filesystems[$protocol] = $filesystem;
 
         return stream_wrapper_register($protocol, __CLASS__, $flags);
@@ -180,7 +185,7 @@ class FlysystemStreamWrapper
      */
     public static function unregister($protocol)
     {
-        if ( ! static::streamWrapperExists($protocol)) {
+        if (!static::streamWrapperExists($protocol)) {
             return false;
         }
 
@@ -224,19 +229,15 @@ class FlysystemStreamWrapper
      * @param string $protocol
      * @param FilesystemInterface $filesystem
      */
-    protected static function registerPlugins($protocol, FilesystemInterface $filesystem)
+    protected static function registerPlugins($protocol, Filesystem $filesystem)
     {
-        $filesystem->addPlugin(new ForcedRename());
-        $filesystem->addPlugin(new Mkdir());
-        $filesystem->addPlugin(new Rmdir());
+        // $filesystem->addPlugin(new ForcedRename());
+        // $filesystem->addPlugin(new Mkdir());
+        // $filesystem->addPlugin(new Rmdir());
 
-        $stat = new Stat(
-            static::$config[$protocol]['permissions'],
-            static::$config[$protocol]['metadata']
-        );
 
-        $filesystem->addPlugin($stat);
-        $filesystem->addPlugin(new Touch());
+        // $filesystem->addPlugin($stat);
+        // $filesystem->addPlugin(new Touch());
     }
 
     /**
@@ -262,16 +263,15 @@ class FlysystemStreamWrapper
     public function dir_opendir($uri, $options)
     {
         $this->uri = $uri;
+        $path = $this->getTarget();
 
-        $path = Util::normalizePath($this->getTarget());
-
-        $this->listing = $this->invoke($this->getFilesystem(), 'listContents', [$path], 'opendir');
+        $this->listing = $this->getFilesystem()->listContents($this->getTarget())->toArray();
 
         if ($this->listing === false) {
             return false;
         }
 
-        if ( ! $dirlen = strlen($path)) {
+        if (!$dirlen = strlen($path)) {
             return true;
         }
 
@@ -295,10 +295,12 @@ class FlysystemStreamWrapper
      */
     public function dir_readdir()
     {
+        /** @var \League\Flysystem\StorageAttributes $current */
         $current = current($this->listing);
+
         next($this->listing);
 
-        return $current ? $current['path'] : false;
+        return $current ? $current->path() : false;
     }
 
     /**
@@ -325,8 +327,19 @@ class FlysystemStreamWrapper
     public function mkdir($uri, $mode, $options)
     {
         $this->uri = $uri;
+        $filesystem = $this->getFilesystem();
 
-        return $this->invoke($this->getFilesystem(), 'mkdir', [$this->getTarget(), $mode, $options]);
+        $dirname = $this->getTarget();
+
+        if (($options & STREAM_MKDIR_RECURSIVE) || strpos($dirname, '/') === false) {
+            return (bool) $filesystem->createDirectory($dirname);
+        }
+
+        if (!$filesystem->fileExists(dirname($dirname))) {
+            throw new InvalidArgumentException($dirname . ' not found');
+        }
+
+        return (bool) $filesystem->createDirectory($dirname);
     }
 
     /**
@@ -340,9 +353,9 @@ class FlysystemStreamWrapper
     public function rename($uri_from, $uri_to)
     {
         $this->uri = $uri_from;
-        $args = [$this->getTarget($uri_from), $this->getTarget($uri_to)];
 
-        return $this->invoke($this->getFilesystem(), 'forcedRename', $args, 'rename');
+        $forcedRename = new ForcedRename($this->getFilesystem());
+        return $forcedRename->handle($this->getTarget($uri_from), $this->getTarget($uri_to));
     }
 
     /**
@@ -357,7 +370,21 @@ class FlysystemStreamWrapper
     {
         $this->uri = $uri;
 
-        return $this->invoke($this->getFilesystem(), 'rmdir', [$this->getTarget(), $options]);
+        $dirname = $this->getTarget();
+        $filesystem = $this->getFilesystem();
+
+        if ($options & STREAM_MKDIR_RECURSIVE) {
+            // I don't know how this gets triggered.
+            return (bool) $filesystem->deleteDirectory($dirname);
+        }
+
+        $contents = $this->getFilesystem()->listContents($dirname)->toArray();
+
+        if (!empty($contents)) {
+            throw new DirectoryNotEmptyException();
+        }
+
+        return (bool) $filesystem->deleteDirectory($dirname);        
     }
 
     /**
@@ -404,7 +431,7 @@ class FlysystemStreamWrapper
      */
     public function stream_flush()
     {
-        if ( ! $this->needsFlush) {
+        if (!$this->needsFlush) {
             return true;
         }
 
@@ -415,8 +442,7 @@ class FlysystemStreamWrapper
         // the position of the file.
         $pos = ftell($this->handle);
 
-        $args = [$this->getTarget(), $this->handle];
-        $success = $this->invoke($this->getFilesystem(), 'putStream', $args, 'fflush');
+        $success = $this->getFilesystem()->writeStream($this->getTarget(), $this->handle);
 
         if (is_resource($this->handle)) {
             fseek($this->handle, $pos);
@@ -483,7 +509,8 @@ class FlysystemStreamWrapper
                 return true;
 
             case STREAM_META_TOUCH:
-                return $this->invoke($this->getFilesystem(), 'touch', [$this->getTarget()]);
+                $touch = new Touch($this->getFilesystem());
+                $touch->handle($this->getTarget());
 
             default:
                 return false;
@@ -509,7 +536,7 @@ class FlysystemStreamWrapper
         $this->isWriteOnly = StreamUtil::modeIsWriteOnly($mode);
         $this->isAppendMode = StreamUtil::modeIsAppendable($mode);
 
-        $this->handle = $this->invoke($this, 'getStream', [$path, $mode], 'fopen');
+        $this->handle = $this->getStream($path, $mode);
 
         if ($this->handle && $options & STREAM_USE_PATH) {
             $opened_path = $path;
@@ -681,7 +708,7 @@ class FlysystemStreamWrapper
     {
         $this->uri = $uri;
 
-        return $this->invoke($this->getFilesystem(), 'delete', [$this->getTarget()], 'unlink');
+        return $this->getFilesystem()->delete($this->getTarget());
     }
 
     /**
@@ -691,23 +718,24 @@ class FlysystemStreamWrapper
      * @param int    $flags
      *
      * @return array|false Output similar to stat().
-     *
+     * @todo Implementation
+     * 
      * @see stat()
      */
     public function url_stat($uri, $flags)
     {
         $this->uri = $uri;
 
+
+        $stat = new Stat(
+            $this->getFilesystem(),
+            static::$config[$this->getProtocol()]['permissions'],
+            static::$config[$this->getProtocol()]['metadata']
+        );
+
         try {
-            return $this->getFilesystem()->stat($this->getTarget(), $flags);
-        } catch (FileNotFoundException $e) {
-            // File doesn't exist.
-            if ( ! ($flags & STREAM_URL_STAT_QUIET)) {
-                $this->triggerError('stat', $e);
-            }
-        } catch (\Exception $e) {
-            $this->triggerError('stat', $e);
-        }
+            return $stat->handle($this->getTarget(), $flags);
+        } catch (\Exception $exp) {}
 
         return false;
     }
@@ -811,7 +839,7 @@ class FlysystemStreamWrapper
      */
     protected function ensureWritableHandle()
     {
-        if ( ! $this->needsCowCheck) {
+        if (!$this->needsCowCheck) {
             return;
         }
 
@@ -843,7 +871,7 @@ class FlysystemStreamWrapper
      */
     protected function getTarget($uri = null)
     {
-        if ( ! isset($uri)) {
+        if (!isset($uri)) {
             $uri = $this->uri;
         }
 
@@ -867,7 +895,7 @@ class FlysystemStreamWrapper
     /**
      * Returns the filesystem.
      *
-     * @return \League\Flysystem\FilesystemInterface The filesystem object.
+     * @return \League\Flysystem\Filesystem The filesystem object.
      */
     protected function getFilesystem()
     {
@@ -953,7 +981,7 @@ class FlysystemStreamWrapper
 
         // Race free directory creation. If @mkdir() fails, fopen() will fail
         // later, so there's no reason to test again.
-        ! is_dir($temp_dir) && @mkdir($temp_dir, 0777, true);
+        !is_dir($temp_dir) && @mkdir($temp_dir, 0777, true);
 
         // Normalize paths so that locks are consistent.
         // We are using sha1() to avoid the file name limits, and case

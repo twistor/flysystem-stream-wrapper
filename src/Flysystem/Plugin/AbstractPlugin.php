@@ -3,20 +3,19 @@
 namespace Twistor\Flysystem\Plugin;
 
 use League\Flysystem\Config;
+use League\Flysystem\Filesystem;
 use League\Flysystem\Plugin\AbstractPlugin as FlysystemPlugin;
 
-abstract class AbstractPlugin extends FlysystemPlugin
+abstract class AbstractPlugin
 {
     /**
      * @var \League\Flysystem\Filesystem
      */
     protected $filesystem;
 
-    protected function defaultConfig()
+    public function __construct(Filesystem $filesystem)
     {
-        $config = new Config();
-        $config->setFallback($this->filesystem->getConfig());
-
-        return $config;
+        $this->filesystem = $filesystem;
     }
+    
 }
