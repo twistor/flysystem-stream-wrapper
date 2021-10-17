@@ -154,7 +154,7 @@ class Stat extends AbstractPlugin
         $ret['gid'] = $this->uid->getGid();
 
         $ret['mode'] = $metadata['type'] === 'dir' ? 040000 : 0100000;
-        $ret['mode'] += $this->permissions[$metadata['type']][$metadata['visibility']];
+        $ret['mode'] += empty($this->permissions[$metadata['type']][$metadata['visibility']]) ? intval($metadata['visibility'], 8) : $this->permissions[$metadata['type']][$metadata['visibility']];
 
         if (isset($metadata['size'])) {
             $ret['size'] = (int) $metadata['size'];

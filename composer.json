@@ -11,7 +11,7 @@
         }
     ],
     "require": {
-        "league/flysystem": "^1.0.9",
+        "league/flysystem": "1.*|2.*",
         "twistor/stream-util": "~1.0"
     },
     "require-dev": {
