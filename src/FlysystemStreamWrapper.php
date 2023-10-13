@@ -26,6 +26,13 @@ class FlysystemStreamWrapper
     const STREAM_URL_IGNORE_SIZE = 8;
 
     /**
+     * PHP-passed stream context.
+     *
+     * @var resource|null
+     */
+    public $context;
+
+    /**
      * The registered filesystems.
      *
      * @var \League\Flysystem\FilesystemInterface[]
